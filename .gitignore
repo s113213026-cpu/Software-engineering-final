@@ -1,0 +1,24 @@
+# Python 虛擬環境
+.venv/
+.venv-*/
+env/
+venv/
+ENV/
+
+# Python 編譯快取
+__pycache__/
+*.py[cod]
+*$py.class
+
+# SQLite 資料庫與實例檔案 (各組員本地獨立生成，不可進 Git)
+instance/
+*.sqlite3
+*.sqlite
+*.db
+
+# 編輯器與系統暫存
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log

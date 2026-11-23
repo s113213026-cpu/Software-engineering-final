@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}使用者帳號管理與審核{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <div>
+        <h1>帳號管理與審核</h1>
+        <p class="muted">審核新註冊的師生帳號，或調整使用者角色權限。</p>
+    </div>
+</div>
+
+<div class="table-wrap">
+    <table aria-label="使用者帳號清單">
+        <thead>
+            <tr>
+                <th scope="col">姓名</th>
+                <th scope="col">帳號</th>
+                <th scope="col">角色</th>
+                <th scope="col">Email</th>
+                <th scope="col">審核狀態</th>
+                <th scope="col">註冊時間</th>
+                <th scope="col">操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr>
+                <td><strong>{{ u.name }}</strong></td>
+                <td><code>{{ u.username }}</code></td>
+                <td>
+                    {% if u.role == 'admin' %}
+                    <span style="background: #e3f2fd; color: #1565c0; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">管理員</span>
+                    {% elif u.role == 'teacher' %}
+                    <span style="background: #ede7f6; color: #512da8; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.85rem; font-weight: 600;">教師</span>
+                    {% else %}
+                    <span style="background: #e8f5e9; color: #2e7d32; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.85rem;">學生/一般</span>
+                    {% endif %}
+                </td>
+                <td>{{ u.email or '-' }}</td>
+                <td>
+                    {% if u.status == 'approved' %}
+                    <span style="color: #2e7d32; font-weight: 600;">● 已核准</span>
+                    {% elif u.status == 'pending' %}
+                    <span style="color: #e65100; font-weight: 600; background: #fff3e0; padding: 0.2rem 0.5rem; border-radius: 4px;">⏳ 待審核</span>
+                    {% else %}
+                    <span style="color: #c62828;">✕ 已停用/駁回</span>
+                    {% endif %}
+                </td>
+                <td style="font-size: 0.9rem; color: var(--muted);">{{ u.created_at }}</td>
+                <td>
+                    <div style="display: flex; gap: 0.4rem; align-items: center;">
+                        {% if u.status != 'approved' %}
+                        <form method="post" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="user_id" value="{{ u.id }}">
+                            <input type="hidden" name="action" value="approve">
+                            <button type="submit" style="padding: 0.25rem 0.6rem; font-size: 0.85rem; background: #2e7d32; color: #fff; border: none; border-radius: 4px;">通過</button>
+                        </form>
+                        {% endif %}
+                        {% if u.status != 'rejected' and u.role != 'admin' %}
+                        <form method="post" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="user_id" value="{{ u.id }}">
+                            <input type="hidden" name="action" value="reject">
+                            <button type="submit" style="padding: 0.25rem 0.6rem; font-size: 0.85rem; background: #c62828; color: #fff; border: none; border-radius: 4px;">駁回</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

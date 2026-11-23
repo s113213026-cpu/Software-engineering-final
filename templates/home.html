@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="intro">
+    <p class="eyebrow">軟體工程學期專案</p>
+    <h1>管院空間與課程</h1>
+</section>
+<section class="modules" aria-label="專案模組">
+    <a class="module" href="{{ url_for('spaces.index') }}">
+        <h2>管院空間查詢</h2>
+        <p>瀏覽教室與樓層資訊。</p>
+    </a>
+    <a class="module" href="{{ url_for('bookings.index') }}">
+        <h2>空間與物品預約借用</h2>
+        <p>登入後查看借用紀錄。</p>
+    </a>
+    <a class="module" href="{{ url_for('scheduling.index') }}">
+        <h2>志願排課</h2>
+        <p>登入後查看課程志願。</p>
+    </a>
+</section>
+{% endblock %}

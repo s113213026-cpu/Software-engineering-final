@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}空間與物品預約借用{% endblock %}
+
+{% block content %}
+<h1>空間與物品預約借用</h1>
+<h2>我的借用紀錄</h2>
+{% if bookings %}
+<div class="table-wrap">
+    <table aria-label="借用紀錄">
+        <thead><tr><th scope="col">教室</th><th scope="col">借用開始</th><th scope="col">借用結束</th><th scope="col">狀態</th></tr></thead>
+        <tbody>
+            {% for booking in bookings %}
+            <tr><td>{{ booking.code }}</td><td>{{ booking.starts_at }}</td><td>{{ booking.ends_at }}</td><td>{{ booking.status }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="empty">目前沒有借用紀錄。</p>
+{% endif %}
+{% endblock %}

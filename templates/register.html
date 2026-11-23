@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}註冊帳號{% endblock %}
+
+{% block content %}
+<section class="login-panel">
+    <h1>註冊帳號</h1>
+    <p class="muted">填寫註冊資料後需經管院管理員審核通過方可使用。</p>
+
+    {% if error %}
+    <p class="error" role="alert">{{ error }}</p>
+    {% endif %}
+
+    {% if success %}
+    <div class="success-message" style="background: #e8f5e9; color: #2e7d32; padding: 1rem; border-radius: 0.4rem; margin-bottom: 1rem;">
+        <p style="margin: 0;"><strong>{{ success }}</strong></p>
+        <p style="margin: 0.5rem 0 0;"><a href="{{ url_for('auth.login') }}">前往登入頁面</a></p>
+    </div>
+    {% else %}
+    <form class="login-form" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>
+            帳號 <span style="color: #c00;">*</span>
+            <input name="username" autocomplete="username" required placeholder="如：學號或教職員代碼">
+        </label>
+        <label>
+            密碼 <span style="color: #c00;">*</span>
+            <input name="password" type="password" autocomplete="new-password" required placeholder="至少 4 個字元">
+        </label>
+        <label>
+            真實姓名 <span style="color: #c00;">*</span>
+            <input name="name" required placeholder="如：王大明">
+        </label>
+        <label>
+            電子郵件
+            <input name="email" type="email" placeholder="如：s111000@ncnu.edu.tw">
+        </label>
+        <label>
+            身分類型 <span style="color: #c00;">*</span>
+            <select name="role" required style="width: 100%; padding: 0.5rem; border: 1px solid #879ca7; border-radius: 0.35rem; background: #fff;">
+                <option value="user">學生 / 一般使用者 (可借用教室與物品)</option>
+                <option value="teacher">專任/兼任教師 (可填報排課志願)</option>
+            </select>
+        </label>
+        <button type="submit">送出註冊申請</button>
+    </form>
+    {% endif %}
+
+    <div style="margin-top: 1.5rem; text-align: center; font-size: 0.95rem;">
+        已有帳號？ <a href="{{ url_for('auth.login') }}" style="color: var(--accent); font-weight: 600;">直接登入</a>
+    </div>
+</section>
+{% endblock %}

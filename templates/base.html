@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}首頁{% endblock %}｜管院資源入口</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='portal.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <header class="site-header">
+        <div class="container header-content">
+            <a class="brand" href="{{ url_for('home') }}">管院資源入口</a>
+            <nav aria-label="模組導覽">
+                <a href="{{ url_for('spaces.index') }}" {% if request.blueprint == 'spaces' %}aria-current="page"{% endif %}>空間查詢</a>
+                <a href="{{ url_for('bookings.index') }}" {% if request.blueprint == 'bookings' %}aria-current="page"{% endif %}>預約借用</a>
+                <a href="{{ url_for('scheduling.index') }}" {% if request.blueprint == 'scheduling' %}aria-current="page"{% endif %}>志願排課</a>
+                {% if g.user and g.user.role == 'admin' %}
+                <a href="{{ url_for('auth.admin_users') }}" {% if request.endpoint == 'auth.admin_users' %}aria-current="page"{% endif %}>帳號審核</a>
+                {% endif %}
+            </nav>
+            {% if g.user %}
+            <form class="session" method="post" action="{{ url_for('auth.logout') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <span style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                    <strong>{{ g.user.name or g.user.username }}</strong>
+                    {% if g.user.role == 'admin' %}
+                    <small style="background: #ffb74d; color: #3e2723; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 700;">管理員</small>
+                    {% elif g.user.role == 'teacher' %}
+                    <small style="background: #b39ddb; color: #311b92; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 700;">教師</small>
+                    {% else %}
+                    <small style="background: #a5d6a7; color: #1b5e20; padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 700;">學生</small>
+                    {% endif %}
+                </span>
+                <button class="outline" type="submit">登出</button>
+            </form>
+            {% else %}
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <a class="outline" href="{{ url_for('auth.login') }}">登入</a>
+                <a class="outline" href="{{ url_for('auth.register') }}" style="background: #00796b; border-color: #00796b;">註冊</a>
+            </div>
+            {% endif %}
+        </div>
+    </header>
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

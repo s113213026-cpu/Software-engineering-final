@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}志願排課{% endblock %}
+
+{% block content %}
+<h1>志願排課</h1>
+<h2>我的課程志願</h2>
+{% if courses %}
+<div class="table-wrap">
+    <table aria-label="課程志願">
+        <thead><tr><th scope="col">課程</th><th scope="col">希望的教室</th><th scope="col">開始時間</th><th scope="col">結束時間</th></tr></thead>
+        <tbody>
+            {% for course in courses %}
+            <tr><td>{{ course.course_name }}</td><td>{{ course.code }}</td><td>{{ course.starts_at }}</td><td>{{ course.ends_at }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<p class="empty">目前沒有課程志願。</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}管院空間查詢{% endblock %}
+
+{% block content %}
+<h1>管院空間查詢</h1>
+<p class="muted">下表為測試用空間。</p>
+<div class="table-wrap">
+    <table aria-label="教室清單">
+        <thead>
+            <tr>
+                <th scope="col">教室代號</th>
+                <th scope="col">空間名稱</th>
+                <th scope="col">樓層</th>
+                <th scope="col">類型</th>
+                <th scope="col">容量</th>
+                <th scope="col">主要設備</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for room in rooms %}
+            <tr>
+                <td><strong>{{ room.code }}</strong></td>
+                <td>{{ room.name }}</td>
+                <td>{{ room.floor }}</td>
+                <td>{{ room.room_type }}</td>
+                <td>{{ room.capacity }} 人</td>
+                <td style="max-width: 20rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ room.equipment or '-' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
