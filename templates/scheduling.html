@@ -1,21 +1,126 @@
 {% extends 'base.html' %}
-{% block title %}志願排課{% endblock %}
+{% block title %}志願排課系統{% endblock %}
 
 {% block content %}
-<h1>志願排課</h1>
-<h2>我的課程志願</h2>
-{% if courses %}
-<div class="table-wrap">
-    <table aria-label="課程志願">
-        <thead><tr><th scope="col">課程</th><th scope="col">希望的教室</th><th scope="col">開始時間</th><th scope="col">結束時間</th></tr></thead>
-        <tbody>
-            {% for course in courses %}
-            <tr><td>{{ course.course_name }}</td><td>{{ course.code }}</td><td>{{ course.starts_at }}</td><td>{{ course.ends_at }}</td></tr>
+<div class="scheduling-container">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>志願排課模組</h1>
+        <span class="muted">目前身分：<strong>{{ g.user['name'] }}</strong> ({{ '系統管理員' if is_admin else '任課教師' }})</span>
+    </div>
+
+    <!-- 管理員時間衝突警示清單 -->
+    {% if is_admin and conflict_details %}
+    <div style="background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 1rem; border-radius: 6px; margin: 1.5rem 0;">
+        <h3 style="margin-top: 0; color: #d39e00;">⚠️ 偵測到排課時間衝突清單（{{ conflict_details|length }} 處）</h3>
+        <ul style="margin-bottom: 0; padding-left: 1.2rem;">
+            {% for c in conflict_details %}
+            <li><strong>[{{ c.type }}]</strong> {{ c.desc }}</li>
             {% endfor %}
-        </tbody>
-    </table>
+        </ul>
+    </div>
+    {% endif %}
+
+    <!-- 登記排課表單 -->
+    <section class="card" style="background: #fafafa; border: 1px solid #e0e0e0; padding: 1.2rem; border-radius: 8px; margin-bottom: 2rem;">
+        <h2>📝 登記 / 新增排課志願</h2>
+        <form action="{{ url_for('scheduling.add_course') }}" method="post" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; align-items: flex-end;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            {% if is_admin %}
+            <label>指派教師
+                <select name="teacher_id" required>
+                    {% for t in teachers %}
+                    <option value="{{ t.id }}">{{ t.name }} ({{ t.username }})</option>
+                    {% endfor %}
+                </select>
+            </label>
+            {% endif %}
+
+            <label>課程名稱
+                <input type="text" name="course_name" placeholder="例如：軟體工程" required>
+            </label>
+
+            <label>星期
+                <select name="day_of_week" required>
+                    <option value="1">星期一</option>
+                    <option value="2">星期二</option>
+                    <option value="3">星期三</option>
+                    <option value="4">星期四</option>
+                    <option value="5">星期五</option>
+                </select>
+            </label>
+
+            <label>開始時間
+                <input type="time" name="starts_at" value="09:00" required>
+            </label>
+
+            <label>結束時間
+                <input type="time" name="ends_at" value="12:00" required>
+            </label>
+
+            <label>希望/指派教室
+                <select name="room_id">
+                    <option value="">-- 未指定 / 任意教室 --</option>
+                    {% for r in rooms %}
+                    <option value="{{ r.id }}">{{ r.code }} ({{ r.name }})</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <div>
+                <button type="submit" style="width: 100%; padding: 0.5rem; background: #0066cc; color: #fff; border: none; border-radius: 4px; cursor: pointer;">
+                    送出登記
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <!-- 課程清單檢視 -->
+    <h2>📋 {{ '全院所有課程排程' if is_admin else '我的課程志願清單' }}</h2>
+    {% if courses %}
+    <div class="table-wrap">
+        <table aria-label="課程清單" style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid #ddd; text-align: left;">
+                    <th style="padding: 0.6rem;">狀態</th>
+                    <th style="padding: 0.6rem;">授課教師</th>
+                    <th style="padding: 0.6rem;">課程名稱</th>
+                    <th style="padding: 0.6rem;">星期</th>
+                    <th style="padding: 0.6rem;">時段</th>
+                    <th style="padding: 0.6rem;">教室</th>
+                    <th style="padding: 0.6rem;">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for course in courses %}
+                <tr style="border-bottom: 1px solid #eee; {% if course.id in conflict_ids %}background-color: #fff8f8;{% endif %}">
+                    <td style="padding: 0.6rem;">
+                        {% if course.id in conflict_ids %}
+                        <span style="background: #dc3545; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;">衝突</span>
+                        {% else %}
+                        <span style="background: #28a745; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;">正常</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.6rem;"><strong>{{ course.teacher_name }}</strong></td>
+                    <td style="padding: 0.6rem;">{{ course.course_name }}</td>
+                    <td style="padding: 0.6rem;">週{{ ['一','二','三','四','五','六','日'][course.day_of_week - 1] }}</td>
+                    <td style="padding: 0.6rem;">{{ course.starts_at }} ~ {{ course.ends_at }}</td>
+                    <td style="padding: 0.6rem;">{{ course.room_code or '尚未指派' }}</td>
+                    <td style="padding: 0.6rem;">
+                        <form action="{{ url_for('scheduling.delete_course', course_id=course.id) }}" method="post" style="display: inline;" onsubmit="return confirm('確定要刪除此課程嗎？');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" style="color: #dc3545; background: none; border: 1px solid #dc3545; border-radius: 4px; padding: 2px 8px; cursor: pointer;">
+                                刪除
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="empty" style="color: #666;">目前尚未有任何排課紀錄。</p>
+    {% endif %}
 </div>
-{% else %}
-<p class="empty">目前沒有課程志願。</p>
-{% endif %}
 {% endblock %}
