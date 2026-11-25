@@ -2,17 +2,47 @@
 {% block title %}志願排課系統{% endblock %}
 
 {% block content %}
+<!-- 引入 FullCalendar 官方 CDN (v6) -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+
 <div class="scheduling-container">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h1>志願排課模組</h1>
-        <span class="muted">目前身分：<strong>{{ g.user['name'] }}</strong> ({{ '系統管理員' if is_admin else '任課教師' }})</span>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div>
+            <h1 style="margin-bottom: 0.2rem;">志願排課模組</h1>
+            <p class="muted" style="margin: 0;">支援教師排課志願登記、全院週日曆檢視、時間衝突自動偵測與管理員拖曳調課。</p>
+        </div>
+        <div style="text-align: right;">
+            <span style="display: inline-block; padding: 6px 14px; background: #eef2f7; border-radius: 20px; font-size: 0.9rem;">
+                目前登入：<strong>{{ g.user['name'] }}</strong> 
+                <span style="color: {{ '#d93025' if is_admin else '#1a73e8' }}; font-weight: bold;">
+                    ({{ '系統管理員' if is_admin else '任課教師' }})
+                </span>
+            </span>
+        </div>
     </div>
+
+    <!-- 系統操作與防呆錯誤提示訊息 (Flash Messages) -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div style="padding: 0.9rem 1.2rem; border-radius: 6px; margin: 1rem 0; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem;
+                {% if category == 'error' %}background: #fce8e6; color: #c5221f; border: 1px solid #fad2cf;
+                {% else %}background: #e6f4ea; color: #137333; border: 1px solid #ceead6;{% endif %}">
+                <span>{{ '❌' if category == 'error' else '✅' }}</span>
+                <span>{{ message }}</span>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
 
     <!-- 管理員時間衝突警示清單 -->
     {% if is_admin and conflict_details %}
-    <div style="background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 1rem; border-radius: 6px; margin: 1.5rem 0;">
-        <h3 style="margin-top: 0; color: #d39e00;">⚠️ 偵測到排課時間衝突清單（{{ conflict_details|length }} 處）</h3>
-        <ul style="margin-bottom: 0; padding-left: 1.2rem;">
+    <div style="background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; padding: 1.2rem; border-radius: 8px; margin: 1.5rem 0;">
+        <h3 style="margin-top: 0; color: #d39e00; display: flex; align-items: center; gap: 0.5rem;">
+            <span>⚠️</span> 偵測到排課時間衝突清單（共 {{ conflict_details|length }} 處衝堂）
+        </h3>
+        <p style="margin-top: 0; font-size: 0.9rem;">以下課程存在「同一教室撞期」或「同一教師時間重疊」情況，首尾相接時段（如 09:00-10:00 與 10:00-11:00）已自動排除視為合法：</p>
+        <ul style="margin-bottom: 0; padding-left: 1.2rem; line-height: 1.6;">
             {% for c in conflict_details %}
             <li><strong>[{{ c.type }}]</strong> {{ c.desc }}</li>
             {% endfor %}
@@ -21,14 +51,14 @@
     {% endif %}
 
     <!-- 登記排課表單 -->
-    <section class="card" style="background: #fafafa; border: 1px solid #e0e0e0; padding: 1.2rem; border-radius: 8px; margin-bottom: 2rem;">
-        <h2>📝 登記 / 新增排課志願</h2>
-        <form action="{{ url_for('scheduling.add_course') }}" method="post" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; align-items: flex-end;">
+    <section class="card" style="background: #ffffff; border: 1px solid #e0e0e0; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <h2 style="margin-top: 0;">📝 登記 / 新增排課志願</h2>
+        <form id="addCourseForm" action="{{ url_for('scheduling.add_course') }}" method="post" onsubmit="return validateTimeForm(this);" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; align-items: flex-end;">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             
             {% if is_admin %}
             <label>指派教師
-                <select name="teacher_id" required>
+                <select name="teacher_id" required style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;">
                     {% for t in teachers %}
                     <option value="{{ t.id }}">{{ t.name }} ({{ t.username }})</option>
                     {% endfor %}
@@ -37,29 +67,31 @@
             {% endif %}
 
             <label>課程名稱
-                <input type="text" name="course_name" placeholder="例如：軟體工程" required>
+                <input type="text" name="course_name" placeholder="例如：軟體工程" required style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;">
             </label>
 
             <label>星期
-                <select name="day_of_week" required>
+                <select name="day_of_week" required style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;">
                     <option value="1">星期一</option>
                     <option value="2">星期二</option>
                     <option value="3">星期三</option>
                     <option value="4">星期四</option>
                     <option value="5">星期五</option>
+                    <option value="6">星期六</option>
+                    <option value="7">星期日</option>
                 </select>
             </label>
 
-            <label>開始時間
-                <input type="time" name="starts_at" value="09:00" required>
+            <label>開始時間 (08:00~21:30)
+                <input type="time" name="starts_at" value="09:00" min="08:00" max="21:30" required style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;">
             </label>
 
-            <label>結束時間
-                <input type="time" name="ends_at" value="12:00" required>
+            <label>結束時間 (08:30~22:00)
+                <input type="time" name="ends_at" value="12:00" min="08:30" max="22:00" required style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;">
             </label>
 
             <label>希望/指派教室
-                <select name="room_id">
+                <select name="room_id" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px;">
                     <option value="">-- 未指定 / 任意教室 --</option>
                     {% for r in rooms %}
                     <option value="{{ r.id }}">{{ r.code }} ({{ r.name }})</option>
@@ -68,49 +100,83 @@
             </label>
 
             <div>
-                <button type="submit" style="width: 100%; padding: 0.5rem; background: #0066cc; color: #fff; border: none; border-radius: 4px; cursor: pointer;">
+                <button type="submit" style="width: 100%; padding: 0.55rem; background: #1a73e8; color: #fff; font-weight: 500; border: none; border-radius: 4px; cursor: pointer;">
                     送出登記
                 </button>
             </div>
         </form>
     </section>
 
-    <!-- 課程清單檢視 -->
-    <h2>📋 {{ '全院所有課程排程' if is_admin else '我的課程志願清單' }}</h2>
+    <!-- 週日曆檢視區塊 (FullCalendar) -->
+    <section class="card" style="background: #ffffff; border: 1px solid #e0e0e0; padding: 1.5rem; border-radius: 8px; margin: 2rem 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 0.8rem;">
+            <div>
+                <h2 style="margin: 0; display: inline-block; vertical-align: middle;">📅 全院排課週日曆檢視</h2>
+                <button id="toggle-weekend-btn" type="button" style="margin-left: 1rem; padding: 4px 12px; font-size: 0.85rem; border: 1px solid #1a73e8; background: #fff; color: #1a73e8; border-radius: 20px; cursor: pointer;">
+                    📅 包含週末 (六/日)：關閉中
+                </button>
+                <div style="margin-top: 0.4rem; font-size: 0.85rem; color: #5f6368;">
+                    <span style="display: inline-block; width: 12px; height: 12px; background: #1a73e8; border-radius: 2px; vertical-align: middle; margin-right: 4px;"></span>正常時段
+                    <span style="display: inline-block; width: 12px; height: 12px; background: #dc3545; border-radius: 2px; vertical-align: middle; margin-left: 12px; margin-right: 4px;"></span>衝突衝堂時段
+                </div>
+            </div>
+            {% if is_admin %}
+            <span style="background: #e6f4ea; color: #137333; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; border: 1px solid #ceead6;">
+                ✨ 管理員模式：可直接按住滑鼠拖曳（Drag & Drop）或縮放調整課程時間！
+            </span>
+            {% else %}
+            <span style="background: #f1f3f4; color: #5f6368; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem;">
+                檢視模式（僅管理員具備拖曳調課權限）
+            </span>
+            {% endif %}
+        </div>
+        
+        <!-- 日曆容器 -->
+        <div id="calendar" style="min-height: 650px;"></div>
+    </section>
+
+    <!-- 課程清單表格 -->
+    <h2>📋 {{ '全院所有課程清單' if is_admin else '我的課程志願清單' }}</h2>
     {% if courses %}
     <div class="table-wrap">
         <table aria-label="課程清單" style="width: 100%; border-collapse: collapse;">
             <thead>
-                <tr style="border-bottom: 2px solid #ddd; text-align: left;">
-                    <th style="padding: 0.6rem;">狀態</th>
-                    <th style="padding: 0.6rem;">授課教師</th>
-                    <th style="padding: 0.6rem;">課程名稱</th>
-                    <th style="padding: 0.6rem;">星期</th>
-                    <th style="padding: 0.6rem;">時段</th>
-                    <th style="padding: 0.6rem;">教室</th>
-                    <th style="padding: 0.6rem;">操作</th>
+                <tr style="border-bottom: 2px solid #ddd; text-align: left; background: #f8f9fa;">
+                    <th style="padding: 0.75rem;">狀態</th>
+                    <th style="padding: 0.75rem;">授課教師</th>
+                    <th style="padding: 0.75rem;">課程名稱</th>
+                    <th style="padding: 0.75rem;">星期</th>
+                    <th style="padding: 0.75rem;">時段</th>
+                    <th style="padding: 0.75rem;">教室</th>
+                    <th style="padding: 0.75rem;">操作</th>
                 </tr>
             </thead>
             <tbody>
                 {% for course in courses %}
                 <tr style="border-bottom: 1px solid #eee; {% if course.id in conflict_ids %}background-color: #fff8f8;{% endif %}">
-                    <td style="padding: 0.6rem;">
+                    <td style="padding: 0.75rem;">
                         {% if course.id in conflict_ids %}
-                        <span style="background: #dc3545; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;">衝突</span>
+                        <span style="background: #dc3545; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold;">衝堂衝突</span>
                         {% else %}
-                        <span style="background: #28a745; color: white; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;">正常</span>
+                        <span style="background: #28a745; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.8rem;">正常</span>
                         {% endif %}
                     </td>
-                    <td style="padding: 0.6rem;"><strong>{{ course.teacher_name }}</strong></td>
-                    <td style="padding: 0.6rem;">{{ course.course_name }}</td>
-                    <td style="padding: 0.6rem;">週{{ ['一','二','三','四','五','六','日'][course.day_of_week - 1] }}</td>
-                    <td style="padding: 0.6rem;">{{ course.starts_at }} ~ {{ course.ends_at }}</td>
-                    <td style="padding: 0.6rem;">{{ course.room_code or '尚未指派' }}</td>
-                    <td style="padding: 0.6rem;">
-                        <form action="{{ url_for('scheduling.delete_course', course_id=course.id) }}" method="post" style="display: inline;" onsubmit="return confirm('確定要刪除此課程嗎？');">
+                    <td style="padding: 0.75rem;"><strong>{{ course.teacher_name }}</strong></td>
+                    <td style="padding: 0.75rem;">{{ course.course_name }}</td>
+                    <td style="padding: 0.75rem;">週{{ ['一','二','三','四','五','六','日'][course.day_of_week - 1] }}</td>
+                    <td style="padding: 0.75rem;">{{ course.starts_at }} ~ {{ course.ends_at }}</td>
+                    <td style="padding: 0.75rem;">{{ course.room_code or '尚未指定' }}</td>
+                    <td style="padding: 0.75rem; white-space: nowrap;">
+                        <button type="button" 
+                                onclick="openEditModal('{{ course.id }}', '{{ course.course_name|escape }}', '{{ course.day_of_week }}', '{{ course.starts_at }}', '{{ course.ends_at }}', '{{ course.room_id or '' }}', '{{ course.user_id }}')" 
+                                style="color: #1a73e8; background: #fff; border: 1px solid #1a73e8; border-radius: 4px; padding: 3px 8px; cursor: pointer; font-size: 0.85rem; margin-right: 4px;">
+                            ✏️ 修改
+                        </button>
+
+                        <form action="{{ url_for('scheduling.delete_course', course_id=course.id) }}" method="post" style="display: inline;" onsubmit="return confirm('確定要刪除此課程志願嗎？');">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" style="color: #dc3545; background: none; border: 1px solid #dc3545; border-radius: 4px; padding: 2px 8px; cursor: pointer;">
-                                刪除
+                            <button type="submit" style="color: #dc3545; background: #fff; border: 1px solid #dc3545; border-radius: 4px; padding: 3px 8px; cursor: pointer; font-size: 0.85rem;">
+                                🗑️ 刪除
                             </button>
                         </form>
                     </td>
@@ -123,4 +189,230 @@
     <p class="empty" style="color: #666;">目前尚未有任何排課紀錄。</p>
     {% endif %}
 </div>
+
+<!-- 修改課程彈窗 Modal -->
+<div id="editModal" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center;">
+    <div style="background: #fff; padding: 1.8rem; border-radius: 8px; width: 90%; max-width: 450px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+        <h3 style="margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 0.6rem;">✏️ 修改排課志願</h3>
+        <form id="editForm" method="post" onsubmit="return validateTimeForm(this);" style="display: flex; flex-direction: column; gap: 0.9rem;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            {% if is_admin %}
+            <label>授課教師
+                <select name="teacher_id" id="edit_teacher_id" required style="width: 100%; padding: 0.45rem; border: 1px solid #ccc; border-radius: 4px; margin-top: 4px;">
+                    {% for t in teachers %}
+                    <option value="{{ t.id }}">{{ t.name }} ({{ t.username }})</option>
+                    {% endfor %}
+                </select>
+            </label>
+            {% endif %}
+
+            <label>課程名稱
+                <input type="text" name="course_name" id="edit_course_name" required style="width: 100%; padding: 0.45rem; border: 1px solid #ccc; border-radius: 4px; margin-top: 4px;">
+            </label>
+
+            <label>星期
+                <select name="day_of_week" id="edit_day_of_week" required style="width: 100%; padding: 0.45rem; border: 1px solid #ccc; border-radius: 4px; margin-top: 4px;">
+                    <option value="1">星期一</option>
+                    <option value="2">星期二</option>
+                    <option value="3">星期三</option>
+                    <option value="4">星期四</option>
+                    <option value="5">星期五</option>
+                    <option value="6">星期六</option>
+                    <option value="7">星期日</option>
+                </select>
+            </label>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;">
+                <label>開始時間 (08:00~21:30)
+                    <input type="time" name="starts_at" id="edit_starts_at" min="08:00" max="21:30" required style="width: 100%; padding: 0.45rem; border: 1px solid #ccc; border-radius: 4px; margin-top: 4px;">
+                </label>
+                <label>結束時間 (08:30~22:00)
+                    <input type="time" name="ends_at" id="edit_ends_at" min="08:30" max="22:00" required style="width: 100%; padding: 0.45rem; border: 1px solid #ccc; border-radius: 4px; margin-top: 4px;">
+                </label>
+            </div>
+
+            <label>希望/指派教室
+                <select name="room_id" id="edit_room_id" style="width: 100%; padding: 0.45rem; border: 1px solid #ccc; border-radius: 4px; margin-top: 4px;">
+                    <option value="">-- 未指定 / 任意教室 --</option>
+                    {% for r in rooms %}
+                    <option value="{{ r.id }}">{{ r.code }} ({{ r.name }})</option>
+                    {% endfor %}
+                </select>
+            </label>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 1rem;">
+                <button type="button" onclick="closeEditModal()" style="padding: 0.5rem 1rem; background: #e0e0e0; border: none; border-radius: 4px; cursor: pointer;">
+                    取消
+                </button>
+                <button type="submit" style="padding: 0.5rem 1.2rem; background: #1a73e8; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">
+                    儲存變更
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let calendar;
+let showWeekend = false;
+
+// 前端表單送出前的時間防呆驗證
+function validateTimeForm(form) {
+    const startInput = form.querySelector('[name="starts_at"]').value;
+    const endInput = form.querySelector('[name="ends_at"]').value;
+
+    if (!startInput || !endInput) return true;
+
+    const [sh, sm] = startInput.split(':').map(Number);
+    const [eh, em] = endInput.split(':').map(Number);
+    const startM = sh * 60 + sm;
+    const endM = eh * 60 + em;
+
+    if (endM <= startM) {
+        alert("⚠️ 防呆提醒：結束時間必須晚於開始時間（不得倒置、相同或跨日）！");
+        return false;
+    }
+
+    if (startM < 8 * 60) {
+        alert("⚠️ 防呆提醒：排課開始時間不得早於每日 08:00！");
+        return false;
+    }
+
+    if (endM > 22 * 60) {
+        alert("⚠️ 防呆提醒：排課結束時間不得晚於每日 22:00！");
+        return false;
+    }
+
+    if (endM - startM < 30) {
+        alert("⚠️ 防呆提醒：單堂課程時長至少需為 30 分鐘！");
+        return false;
+    }
+
+    return true;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const calendarEl = document.getElementById('calendar');
+    const isAdmin = {{ 'true' if is_admin else 'false' }};
+
+    calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'timeGridWeek',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: ''
+        },
+        buttonText: {
+            today: '本週'
+        },
+        allDaySlot: false,
+        slotMinTime: '08:00:00',
+        slotMaxTime: '22:00:00',
+        hiddenDays: [0, 6],
+        slotDuration: '00:30:00',
+        dayHeaderFormat: { weekday: 'short' },
+        events: "{{ url_for('scheduling.api_events') }}",
+        editable: isAdmin,
+        
+        eventDrop: function(info) {
+            handleEventChange(info);
+        },
+        eventResize: function(info) {
+            handleEventChange(info);
+        }
+    });
+
+    calendar.render();
+
+    const toggleBtn = document.getElementById('toggle-weekend-btn');
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', function() {
+            showWeekend = !showWeekend;
+            calendar.setOption('hiddenDays', showWeekend ? [] : [0, 6]);
+            toggleBtn.textContent = showWeekend ? "📅 包含週末 (六/日)：開啟中" : "📅 包含週末 (六/日)：關閉中";
+            toggleBtn.style.background = showWeekend ? "#1a73e8" : "#fff";
+            toggleBtn.style.color = showWeekend ? "#fff" : "#1a73e8";
+        });
+    }
+
+    function handleEventChange(info) {
+        const event = info.event;
+        const dayOfWeek = (event.start.getDay() === 0 ? 7 : event.start.getDay());
+        
+        const pad = (n) => String(n).padStart(2, '0');
+        const startsAt = `${pad(event.start.getHours())}:${pad(event.start.getMinutes())}`;
+        const endsAt = `${pad(event.end.getHours())}:${pad(event.end.getMinutes())}`;
+
+        // 前端拖曳防呆檢查
+        const [sh, sm] = [event.start.getHours(), event.start.getMinutes()];
+        const [eh, em] = [event.end.getHours(), event.end.getMinutes()];
+        const startM = sh * 60 + sm;
+        const endM = eh * 60 + em;
+
+        if (startM < 8 * 60 || endM > 22 * 60 || endM <= startM) {
+            alert("⚠️ 拖曳無效：時段必須在每日 08:00 ~ 22:00 之間，且結束時間必須晚於開始時間！");
+            info.revert();
+            return;
+        }
+
+        fetch("{{ url_for('scheduling.api_update_time') }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                course_id: event.id,
+                day_of_week: dayOfWeek,
+                starts_at: startsAt,
+                ends_at: endsAt
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert("調整失敗：" + data.message);
+                info.revert();
+            }
+        })
+        .catch(err => {
+            alert("網路或伺服器錯誤，已還原變更。");
+            info.revert();
+        });
+    }
+});
+
+function openEditModal(courseId, courseName, dayOfWeek, startsAt, endsAt, roomId, teacherId) {
+    const modal = document.getElementById('editModal');
+    const form = document.getElementById('editForm');
+    
+    form.action = `/scheduling/edit/${courseId}`;
+    
+    document.getElementById('edit_course_name').value = courseName;
+    document.getElementById('edit_day_of_week').value = dayOfWeek;
+    document.getElementById('edit_starts_at').value = startsAt;
+    document.getElementById('edit_ends_at').value = endsAt;
+    document.getElementById('edit_room_id').value = roomId || '';
+    
+    const teacherSelect = document.getElementById('edit_teacher_id');
+    if (teacherSelect && teacherId) {
+        teacherSelect.value = teacherId;
+    }
+
+    modal.style.display = 'flex';
+}
+
+function closeEditModal() {
+    document.getElementById('editModal').style.display = 'none';
+}
+
+window.addEventListener('click', function(e) {
+    const modal = document.getElementById('editModal');
+    if (e.target === modal) {
+        closeEditModal();
+    }
+});
+</script>
 {% endblock %}
