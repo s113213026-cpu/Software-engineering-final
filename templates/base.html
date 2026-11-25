@@ -17,6 +17,7 @@
                 <a href="{{ url_for('bookings.index') }}" {% if request.blueprint == 'bookings' %}aria-current="page"{% endif %}>預約借用</a>
                 <a href="{{ url_for('scheduling.index') }}" {% if request.blueprint == 'scheduling' %}aria-current="page"{% endif %}>志願排課</a>
                 {% if g.user and g.user.role == 'admin' %}
+                <a href="{{ url_for('spaces.admin_list') }}" {% if 'spaces.admin' in request.endpoint %}aria-current="page"{% endif %}>教室維護</a>
                 <a href="{{ url_for('auth.admin_users') }}" {% if request.endpoint == 'auth.admin_users' %}aria-current="page"{% endif %}>帳號審核</a>
                 {% endif %}
             </nav>

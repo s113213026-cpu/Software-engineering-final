@@ -1369,3 +1369,275 @@ tbody tr + tr td { border-top: 1px solid var(--border); }
         grid-template-columns: 1fr;
     }
 }
+
+/* ========================================================
+   管理員專用教室維護後台 (CRUD) 樣式
+   ======================================================== */
+
+.admin-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.btn-primary-add {
+    display: inline-flex;
+    align-items: center;
+    background: var(--accent);
+    color: #ffffff;
+    padding: 0.65rem 1.25rem;
+    border-radius: 0.45rem;
+    font-weight: 750;
+    font-size: 0.95rem;
+    text-decoration: none;
+    box-shadow: 0 4px 10px rgba(0, 98, 81, 0.25);
+    transition: all 0.18s ease;
+}
+
+.btn-primary-add:hover {
+    background: #004d40;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 98, 81, 0.35);
+}
+
+.btn-admin-manage {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: #fff8e1;
+    color: #b78103;
+    border: 1px solid #ffe082;
+    padding: 0.45rem 1rem;
+    border-radius: 0.45rem;
+    font-weight: 700;
+    font-size: 0.92rem;
+    text-decoration: none;
+    transition: all 0.18s ease;
+}
+
+.btn-admin-manage:hover {
+    background: #ffecb3;
+}
+
+.btn-admin-edit-room {
+    display: inline-flex;
+    align-items: center;
+    background: #fff8e1;
+    color: #9c6500;
+    border: 1px solid #ffd54f;
+    padding: 0.4rem 0.85rem;
+    border-radius: 0.35rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background 0.15s ease;
+}
+
+.btn-admin-edit-room:hover {
+    background: #ffe082;
+}
+
+/* 統計指標卡片 */
+.admin-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.25rem;
+}
+
+.metric-card {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 0.65rem;
+    padding: 1.2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.metric-num {
+    font-size: 2.2rem;
+    font-weight: 850;
+    color: var(--ink);
+    line-height: 1.1;
+    margin-bottom: 0.35rem;
+}
+
+.metric-label {
+    font-size: 0.88rem;
+    color: var(--muted);
+    font-weight: 650;
+}
+
+.active-metric .metric-num {
+    color: #2e7d32;
+}
+
+.pano-metric .metric-num {
+    color: #0277bd;
+}
+
+/* 操作按鈕組 */
+.btn-action-edit {
+    display: inline-block;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.82rem;
+    font-weight: 650;
+    background: #e3f2fd;
+    color: #1565c0;
+    border: 1px solid #90caf9;
+    border-radius: 0.3rem;
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.btn-action-edit:hover {
+    background: #bbdefb;
+}
+
+.btn-action-toggle {
+    display: inline-block;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.82rem;
+    font-weight: 650;
+    background: #f5f5f5;
+    color: #616161;
+    border: 1px solid #dcdcdc;
+    border-radius: 0.3rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-action-toggle:hover {
+    background: #e0e0e0;
+}
+
+.btn-action-delete {
+    display: inline-block;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.82rem;
+    font-weight: 650;
+    background: #ffebee;
+    color: #c62828;
+    border: 1px solid #ffcdd2;
+    border-radius: 0.3rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-action-delete:hover {
+    background: #ffcdd2;
+}
+
+/* 新增與編輯表單面板 */
+.admin-form-panel {
+    max-width: 52rem;
+    margin-inline: auto;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: clamp(1.5rem, 5vw, 2.5rem);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+}
+
+.form-header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #edf2f5;
+}
+
+.form-header h1 {
+    font-size: 1.7rem;
+    margin: 0 0 0.4rem;
+    color: var(--ink);
+}
+
+.space-admin-form {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-fieldset {
+    border: 1px solid #d2e0e8;
+    border-radius: 0.55rem;
+    padding: 1.25rem 1.4rem;
+    background: #fbfcfd;
+}
+
+.form-fieldset legend {
+    font-weight: 800;
+    color: var(--accent);
+    font-size: 1rem;
+    padding: 0 0.5rem;
+}
+
+.form-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.form-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    margin-top: 0.8rem;
+}
+
+.space-admin-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--ink);
+}
+
+.space-admin-form input:not([type="radio"]):not([type="checkbox"]),
+.space-admin-form select,
+.space-admin-form textarea {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid #9fb4c2;
+    border-radius: 0.38rem;
+    background: #ffffff;
+    font-size: 0.92rem;
+}
+
+.space-admin-form input:focus,
+.space-admin-form select:focus,
+.space-admin-form textarea:focus {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 98, 81, 0.15);
+}
+
+.field-hint {
+    font-size: 0.8rem;
+    color: var(--muted);
+    font-weight: normal;
+    line-height: 1.4;
+    margin-top: 0.2rem;
+}
+
+.required {
+    color: #c62828;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+@media (max-width: 48rem) {
+    .admin-metrics-grid {
+        grid-template-columns: 1fr;
+    }
+    .form-grid-2,
+    .form-grid-3 {
+        grid-template-columns: 1fr;
+    }
+}

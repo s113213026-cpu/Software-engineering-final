@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% block title %}管院教室空間資料維護後台{% endblock %}
+
+{% block content %}
+<div class="admin-page-header">
+    <div>
+        <p class="eyebrow">管理員專用後台</p>
+        <h1>教室空間資料管理</h1>
+        <p class="muted">維護暨大管院所有教室硬體規格、隨時更新 360 全景照片連結、調整平面圖標記坐標與開放狀態。</p>
+    </div>
+    <div class="admin-header-actions">
+        <a href="{{ url_for('spaces.admin_add') }}" class="btn-primary-add">
+            ➕ 新增教室資料
+        </a>
+    </div>
+</div>
+
+<!-- 統計數據卡片 -->
+<div class="admin-metrics-grid">
+    <div class="metric-card">
+        <span class="metric-num">{{ total_rooms }}</span>
+        <span class="metric-label">🏢 登記空間總數</span>
+    </div>
+    <div class="metric-card active-metric">
+        <span class="metric-num">{{ active_rooms }}</span>
+        <span class="metric-label">✅ 開放借用中</span>
+    </div>
+    <div class="metric-card pano-metric">
+        <span class="metric-num">{{ pano_rooms }}</span>
+        <span class="metric-label">🌐 已配置 360 全景</span>
+    </div>
+</div>
+
+<!-- 快速搜尋與樓層過濾列 -->
+<section class="filter-panel" style="margin-top: 1.25rem;">
+    <form method="get" class="filter-form">
+        <div class="filter-row" style="grid-template-columns: 2fr 1fr auto;">
+            <div class="filter-group">
+                <label for="admin-q">搜尋教室</label>
+                <input type="text" id="admin-q" name="q" value="{{ q }}" placeholder="輸入教室代號、名稱或設備關鍵字...">
+            </div>
+            <div class="filter-group">
+                <label for="admin-floor">樓層篩選</label>
+                <select id="admin-floor" name="floor">
+                    <option value="">全部樓層</option>
+                    {% for f in all_floors %}
+                    <option value="{{ f }}" {% if selected_floor == f %}selected{% endif %}>{{ f }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-actions" style="margin-top: 0; padding-top: 0; border: none; align-self: end;">
+                <button type="submit" class="btn-primary">搜尋</button>
+                <a href="{{ url_for('spaces.admin_list') }}" class="btn-reset">清除</a>
+            </div>
+        </div>
+    </form>
+</section>
+
+<!-- 教室管理資料表 -->
+<div class="table-wrap" style="margin-top: 1.5rem;">
+    <table aria-label="教室管理資料清單">
+        <thead>
+            <tr>
+                <th scope="col">代碼</th>
+                <th scope="col">空間名稱</th>
+                <th scope="col">樓層</th>
+                <th scope="col">類型</th>
+                <th scope="col">容量</th>
+                <th scope="col">360 全景配置</th>
+                <th scope="col">平面圖座標 (X, Y)</th>
+                <th scope="col">目前狀態</th>
+                <th scope="col" style="text-align: right;">後台操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rooms %}
+            <tr {% if r.is_active == 0 %}style="opacity: 0.65; background: #fafafa;"{% endif %}>
+                <td><strong>{{ r.code }}</strong></td>
+                <td>
+                    <a href="{{ url_for('spaces.detail', room_id=r.id) }}" class="room-table-link">
+                        {{ r.name }}
+                    </a>
+                </td>
+                <td><span class="badge floor-badge">{{ r.floor }}</span></td>
+                <td><span class="badge type-badge">{{ r.room_type }}</span></td>
+                <td><strong>{{ r.capacity }}</strong> 人</td>
+                <td>
+                    {% if r.panorama_url %}
+                    <span style="color: #2e7d32; font-weight: 700; font-size: 0.85rem;">🌐 已配置</span>
+                    {% else %}
+                    <span style="color: #e65100; font-size: 0.82rem; background: #fff3e0; padding: 0.15rem 0.4rem; border-radius: 3px;">📷 待補全景</span>
+                    {% endif %}
+                </td>
+                <td style="font-family: monospace; font-size: 0.85rem; color: #526570;">
+                    ({{ r.floor_plan_x }}%, {{ r.floor_plan_y }}%)
+                </td>
+                <td>
+                    {% if r.is_active == 1 %}
+                    <span style="color: #2e7d32; font-weight: 700; font-size: 0.85rem;">● 開放中</span>
+                    {% else %}
+                    <span style="color: #c62828; font-weight: 700; font-size: 0.85rem;">✕ 暫停維護</span>
+                    {% endif %}
+                </td>
+                <td style="text-align: right;">
+                    <div style="display: inline-flex; gap: 0.35rem; align-items: center;">
+                        <!-- 編輯按鈕 -->
+                        <a href="{{ url_for('spaces.admin_edit', room_id=r.id) }}" class="btn-action-edit">
+                            編輯
+                        </a>
+
+                        <!-- 切換開放/停用狀態 -->
+                        <form method="post" action="{{ url_for('spaces.admin_toggle', room_id=r.id) }}" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn-action-toggle" title="切換開放/停用狀態">
+                                {% if r.is_active == 1 %}停用{% else %}啟用{% endif %}
+                            </button>
+                        </form>
+
+                        <!-- 刪除按鈕 -->
+                        <form method="post" action="{{ url_for('spaces.admin_delete', room_id=r.id) }}" style="display: inline;"
+                              onsubmit="return confirm('確定要永久刪除教室【{{ r.code }} {{ r.name }}】嗎？此動作無法復原！');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn-action-delete">
+                                刪除
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div style="margin-top: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+    <a href="{{ url_for('spaces.index') }}" class="btn-back">← 返回前台空間查詢</a>
+    <span class="muted" style="font-size: 0.85rem;">💡 提示：點擊「編輯」可直接填入老師發放的 360 全景照片網址或微調平面圖座標。</span>
+</div>
+{% endblock %}

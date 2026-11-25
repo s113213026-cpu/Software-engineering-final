@@ -22,12 +22,21 @@
     <main class="space-main-col">
         <!-- 教室標題資訊列 -->
         <header class="detail-header">
-            <div class="header-badges">
-                <span class="badge floor-badge">{{ room.floor }}</span>
-                <span class="badge type-badge">{{ room.room_type }}</span>
-                <span class="badge capacity-badge">👥 容納 {{ room.capacity }} 人</span>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem;">
+                <div>
+                    <div class="header-badges">
+                        <span class="badge floor-badge">{{ room.floor }}</span>
+                        <span class="badge type-badge">{{ room.room_type }}</span>
+                        <span class="badge capacity-badge">👥 容納 {{ room.capacity }} 人</span>
+                    </div>
+                    <h1 class="detail-title"><span class="highlight-code">{{ room.code }}</span> {{ room.name }}</h1>
+                </div>
+                {% if g.user and g.user.role == 'admin' %}
+                <a href="{{ url_for('spaces.admin_edit', room_id=room.id) }}" class="btn-admin-edit-room">
+                    ⚙️ 編輯此教室資料
+                </a>
+                {% endif %}
             </div>
-            <h1 class="detail-title"><span class="highlight-code">{{ room.code }}</span> {{ room.name }}</h1>
         </header>
 
         <!-- 360 全景照片瀏覽區 -->

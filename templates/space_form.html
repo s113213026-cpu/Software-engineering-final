@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% block title %}{% if action == 'add' %}新增教室空間{% else %}編輯教室：{{ room.code }}{% endblock %}｜管院空間管理{% endblock %}
+
+{% block content %}
+<nav class="breadcrumb" aria-label="路徑導覽">
+    <a href="{{ url_for('home') }}">首頁</a>
+    <span class="sep">/</span>
+    <a href="{{ url_for('spaces.admin_list') }}">教室管理</a>
+    <span class="sep">/</span>
+    <span class="current">{% if action == 'add' %}新增教室空間{% else %}編輯：{{ room.code }} {{ room.name }}{% endif %}</span>
+</nav>
+
+<section class="admin-form-panel">
+    <div class="form-header">
+        <h1>{% if action == 'add' %}➕ 新增管院空間教室{% else %}✏️ 編輯教室資料：{{ room.code }} {{ room.name }}{% endif %}</h1>
+        <p class="muted">填寫教室硬體規格，並可隨時設定 360 全景相片網址與平面圖座標。</p>
+    </div>
+
+    {% if error %}
+    <p class="error" role="alert" style="background: #ffebee; padding: 0.75rem 1rem; border-radius: 4px; border-left: 4px solid #c62828; margin-bottom: 1.25rem;">
+        {{ error }}
+    </p>
+    {% endif %}
+
+    <form method="post" class="space-admin-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <!-- 第一分組：基本辨識與規格 -->
+        <fieldset class="form-fieldset">
+            <legend>1. 基本空間辨識與規格</legend>
+
+            <div class="form-grid-2">
+                <label>
+                    教室編號 / 代碼 <span class="required">*</span>
+                    <input type="text" name="code" value="{{ room.code if room else '' }}" required placeholder="如：管268、管115、A101">
+                </label>
+
+                <label>
+                    空間名稱 <span class="required">*</span>
+                    <input type="text" name="name" value="{{ room.name if room else '' }}" required placeholder="如：階梯演講廳、專業電腦教室">
+                </label>
+            </div>
+
+            <div class="form-grid-3">
+                <label>
+                    所在樓層 <span class="required">*</span>
+                    <select name="floor" required>
+                        <option value="1 樓" {% if room and room.floor == '1 樓' %}selected{% endif %}>1 樓</option>
+                        <option value="2 樓" {% if room and room.floor == '2 樓' %}selected{% endif %}>2 樓</option>
+                        <option value="3 樓" {% if room and room.floor == '3 樓' %}selected{% endif %}>3 樓</option>
+                        <option value="4 樓" {% if room and room.floor == '4 樓' %}selected{% endif %}>4 樓</option>
+                    </select>
+                </label>
+
+                <label>
+                    空間類型 <span class="required">*</span>
+                    <select name="room_type" required>
+                        <option value="一般教室" {% if room and room.room_type == '一般教室' %}selected{% endif %}>一般教室</option>
+                        <option value="階梯教室" {% if room and room.room_type == '階梯教室' %}selected{% endif %}>階梯教室</option>
+                        <option value="電腦教室" {% if room and room.room_type == '電腦教室' %}selected{% endif %}>電腦教室</option>
+                        <option value="研討室" {% if room and room.room_type == '研討室' %}selected{% endif %}>研討室</option>
+                        <option value="個案教室" {% if room and room.room_type == '個案教室' %}selected{% endif %}>個案教室</option>
+                    </select>
+                </label>
+
+                <label>
+                    容納人數（人）<span class="required">*</span>
+                    <input type="number" name="capacity" value="{{ room.capacity if room else 40 }}" required min="1" max="500">
+                </label>
+            </div>
+
+            <label style="margin-top: 0.8rem;">
+                硬體設備清單（建議以頓號「、」或逗號隔開）
+                <input type="text" name="equipment" value="{{ room.equipment if room else '' }}" placeholder="如：雙槍投影機、無線麥克風2支、簡報筆、電腦65台">
+            </label>
+
+            <label style="margin-top: 0.8rem;">
+                空間詳細介紹與借用規範說明
+                <textarea name="description" rows="3" placeholder="簡述空間特色、適合課程或借用須知...">{{ room.description if room else '' }}</textarea>
+            </label>
+        </fieldset>
+
+        <!-- 第二分組：360 全景照片與平面圖位置 -->
+        <fieldset class="form-fieldset" style="margin-top: 1.5rem;">
+            <legend>2. 360° 全景照片與平面圖座標設定</legend>
+
+            <label>
+                🌐 360 全景照片連結 / 檔案路徑（Pannellum）
+                <input type="text" name="panorama_url" value="{{ room.panorama_url if room else '' }}" placeholder="如：https://pannellum.org/images/cerro-toco-0.jpg 或 /static/images/rooms/r268_pano.jpg">
+                <span class="field-hint">
+                    💡 <strong>預留欄位說明：</strong>老師發放照片後，直接貼上照片網址即可上線。若尚未提供請先留空，前台會自動以優雅佔位畫面呈現。
+                </span>
+            </label>
+
+            <div class="form-grid-2" style="margin-top: 0.8rem;">
+                <label>
+                    📍 平面圖 X 坐標百分比 (0.0 ~ 100.0)
+                    <input type="number" step="0.1" name="floor_plan_x" value="{{ room.floor_plan_x if room else 50.0 }}" min="0" max="100">
+                    <span class="field-hint">教室在平面圖上的水平位置（0 為最左，100 為最右）</span>
+                </label>
+
+                <label>
+                    📍 平面圖 Y 坐標百分比 (0.0 ~ 100.0)
+                    <input type="number" step="0.1" name="floor_plan_y" value="{{ room.floor_plan_y if room else 50.0 }}" min="0" max="100">
+                    <span class="field-hint">教室在平面圖上的垂直位置（0 為最上，100 為最下）</span>
+                </label>
+            </div>
+        </fieldset>
+
+        <!-- 第三分組：開放借用狀態 -->
+        <fieldset class="form-fieldset" style="margin-top: 1.5rem;">
+            <legend>3. 空間開放狀態</legend>
+            <div style="display: flex; gap: 1.5rem; align-items: center; padding: 0.4rem 0;">
+                <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="radio" name="is_active" value="1" {% if not room or room.is_active == 1 %}checked{% endif %}>
+                    <span style="color: #2e7d32; font-weight: 700;">● 開放借用（前台正常顯示與預約）</span>
+                </label>
+                <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="radio" name="is_active" value="0" {% if room and room.is_active == 0 %}checked{% endif %}>
+                    <span style="color: #c62828; font-weight: 700;">✕ 關閉維護（前台隱藏不開放借用）</span>
+                </label>
+            </div>
+        </fieldset>
+
+        <!-- 表單操作按鈕 -->
+        <div class="form-actions" style="margin-top: 2rem;">
+            <button type="submit" class="btn-primary-large" style="width: auto; padding-inline: 2rem;">
+                {% if action == 'add' %}確認新增教室{% else %}儲存修改資料{% endif %}
+            </button>
+            <a href="{{ url_for('spaces.admin_list') }}" class="btn-reset">取消返回</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

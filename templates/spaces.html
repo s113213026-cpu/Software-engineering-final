@@ -9,6 +9,11 @@
         <p class="muted">免登入即可查閱所有教學、演講、電腦及研討教室之硬體規格、容納人數與設備清單。</p>
     </div>
     <div class="header-action-group">
+        {% if g.user and g.user.role == 'admin' %}
+        <a href="{{ url_for('spaces.admin_list') }}" class="btn-admin-manage">
+            ⚙️ 進入教室維護後台
+        </a>
+        {% endif %}
         <a href="{{ url_for('spaces.floor_map') }}" class="btn-map-shortcut">
             🗺️ 管院大樓平面圖導覽
         </a>
