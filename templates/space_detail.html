@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+{% block title %}{{ room.code }} {{ room.name }}｜空間詳細規格與 360 全景{% endblock %}
+
+{% block head %}
+<!-- Pannellum 360 全景播放器 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css"/>
+<script src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
+{% endblock %}
+
+{% block content %}
+<!-- 麵包屑導航 -->
+<nav class="breadcrumb" aria-label="路徑導覽">
+    <a href="{{ url_for('home') }}">首頁</a>
+    <span class="sep">/</span>
+    <a href="{{ url_for('spaces.index') }}">空間查詢</a>
+    <span class="sep">/</span>
+    <span class="current">{{ room.code }} {{ room.name }}</span>
+</nav>
+
+<div class="space-detail-layout">
+    <!-- 主內容區 -->
+    <main class="space-main-col">
+        <!-- 教室標題資訊列 -->
+        <header class="detail-header">
+            <div class="header-badges">
+                <span class="badge floor-badge">{{ room.floor }}</span>
+                <span class="badge type-badge">{{ room.room_type }}</span>
+                <span class="badge capacity-badge">👥 容納 {{ room.capacity }} 人</span>
+            </div>
+            <h1 class="detail-title"><span class="highlight-code">{{ room.code }}</span> {{ room.name }}</h1>
+        </header>
+
+        <!-- 360 全景照片瀏覽區 -->
+        <section class="panorama-section" aria-label="360 全景照片瀏覽">
+            <div class="section-title-row">
+                <h2>🌐 360° 實景環顧導覽</h2>
+                <span class="status-indicator available">● 實景檢視</span>
+            </div>
+
+            {% if room.panorama_url %}
+            <!-- 已設定 360 全景照片：啟用 Pannellum 互動播放器 -->
+            <div class="panorama-wrapper">
+                <div id="panorama-viewer" class="panorama-viewer-container"></div>
+                <div class="panorama-toolbar">
+                    <span>💡 <strong>操作說明：</strong>按住滑鼠左鍵可 360 度任意環顧視角，滾動滾輪可拉近/拉遠，支援右下角全螢幕檢視。</span>
+                </div>
+            </div>
+            <script>
+                document.addEventListener("DOMContentLoaded", function () {
+                    pannellum.viewer('panorama-viewer', {
+                        "type": "equirectangular",
+                        "panorama": "{{ room.panorama_url }}",
+                        "autoLoad": true,
+                        "autoRotate": -1.5,
+                        "compass": true,
+                        "showZoomCtrl": true,
+                        "showFullscreenCtrl": true,
+                        "hfov": 105,
+                        "pitch": 0,
+                        "yaw": 0
+                    });
+                });
+            </script>
+
+            {% else %}
+            <!-- 預留更新欄位：照片尚未發布時的優雅佔位與示範機制 -->
+            <div class="panorama-placeholder-box" id="placeholder-box">
+                <div class="placeholder-content">
+                    <div class="placeholder-icon">📷</div>
+                    <h3>360° 全景照片拍攝建置中</h3>
+                    <p class="placeholder-desc">
+                        本空間之高畫質 360 度環景影像現正拍攝製作中。系統已完整預留影像介面，管院管理員可隨時在後台設定更新。
+                    </p>
+
+                    <div class="placeholder-actions">
+                        <button type="button" class="btn-demo-pano" id="load-sample-btn">
+                            載入 360° 示範全景檢視
+                        </button>
+                    </div>
+
+                    {% if g.user and g.user.role == 'admin' %}
+                    <div class="admin-notice">
+                        ⚙️ 管理員提示：可透過教室管理後台之「360 全景照片連結」欄位隨時填入更新。
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 點擊示範後切換之容器 -->
+            <div id="demo-panorama-wrapper" style="display: none;" class="panorama-wrapper">
+                <div id="demo-panorama-viewer" class="panorama-viewer-container"></div>
+                <div class="panorama-toolbar">
+                    <span>💡 <strong>示範全景：</strong>此為 Pannellum 360 度全景互動展示效果，支援拖曳旋轉與滾輪縮放。</span>
+                </div>
+            </div>
+
+            <script>
+                document.getElementById('load-sample-btn')?.addEventListener('click', function () {
+                    document.getElementById('placeholder-box').style.display = 'none';
+                    const wrapper = document.getElementById('demo-panorama-wrapper');
+                    wrapper.style.display = 'block';
+
+                    pannellum.viewer('demo-panorama-viewer', {
+                        "type": "equirectangular",
+                        "panorama": "https://pannellum.org/images/cerro-toco-0.jpg",
+                        "autoLoad": true,
+                        "autoRotate": -2,
+                        "showZoomCtrl": true,
+                        "showFullscreenCtrl": true
+                    });
+                });
+            </script>
+            {% endif %}
+        </section>
+
+        <!-- 空間介紹與詳細說明 -->
+        <section class="detail-section">
+            <h2>📝 空間說明與借用規範</h2>
+            <div class="desc-content">
+                {{ room.description or '國立暨南國際大學管理學院專業教學空間，提供學術研究、專題演講、師生課程及學生活動借用。' }}
+            </div>
+        </section>
+
+        <!-- 設備清單規格 -->
+        <section class="detail-section">
+            <h2>🛠️ 硬體配備與設施清單</h2>
+            <div class="equipment-grid">
+                {% if room.equipment %}
+                    {% for item in room.equipment.split('、') %}
+                        {% for sub in item.split(',') %}
+                            {% if sub.strip() %}
+                            <div class="equipment-card">
+                                <span class="eq-icon">✓</span>
+                                <span class="eq-name">{{ sub.strip() }}</span>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+                {% else %}
+                    <p class="muted">標準講台、教師桌椅及白板。</p>
+                {% endif %}
+            </div>
+        </section>
+    </main>
+
+    <!-- 側邊欄：預約借用與快速規格 -->
+    <aside class="space-sidebar">
+        <!-- 預約卡片 (CTA) -->
+        <div class="sidebar-card booking-cta-card">
+            <h3>預約借用此教室</h3>
+            <p class="cta-desc">如需使用此空間，請由下方按鈕前往登記預約時段與借用物品（鑰匙、筆電、簡報筆等）。</p>
+            <a href="{{ url_for('bookings.index', room_id=room.id) }}" class="btn-primary-large">
+                立即登記預約借用
+            </a>
+            <p class="cta-hint">（需登入管院帳號，未登入將自動引導）</p>
+        </div>
+
+        <!-- 空間規格摘要卡 -->
+        <div class="sidebar-card spec-card">
+            <h3>空間基本規格</h3>
+            <dl class="spec-list">
+                <div class="spec-row">
+                    <dt>教室編號</dt>
+                    <dd><strong>{{ room.code }}</strong></dd>
+                </div>
+                <div class="spec-row">
+                    <dt>所在樓層</dt>
+                    <dd>{{ room.floor }}</dd>
+                </div>
+                <div class="spec-row">
+                    <dt>教室類型</dt>
+                    <dd>{{ room.room_type }}</dd>
+                </div>
+                <div class="spec-row">
+                    <dt>容納人數</dt>
+                    <dd>{{ room.capacity }} 人</dd>
+                </div>
+                <div class="spec-row">
+                    <dt>目前狀態</dt>
+                    <dd><span class="status-indicator available">● 開放申請借用</span></dd>
+                </div>
+                <div class="spec-row">
+                    <dt>管理單位</dt>
+                    <dd>暨大管理學院辦公室</dd>
+                </div>
+            </dl>
+        </div>
+
+        <!-- 近期核准借用狀況（展現整合能力） -->
+        <div class="sidebar-card">
+            <h3>📅 近期已核准借用時段</h3>
+            {% if upcoming_bookings %}
+            <ul class="booking-schedule-list">
+                {% for b in upcoming_bookings %}
+                <li>
+                    <div class="schedule-time">{{ b.starts_at }} ~ {{ b.ends_at }}</div>
+                    <div class="schedule-borrower">借用人：{{ b.user_name }}</div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="muted" style="font-size: 0.88rem; margin: 0.5rem 0 0;">目前近期無核准之預約時段，借用檔期充裕。</p>
+            {% endif %}
+        </div>
+
+        <div style="margin-top: 1rem;">
+            <a href="{{ url_for('spaces.index') }}" class="btn-back">← 返回空間查詢清單</a>
+        </div>
+    </aside>
+</div>
+{% endblock %}

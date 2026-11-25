@@ -116,15 +116,18 @@
             <tbody>
                 {% for r in rooms %}
                 <tr>
-                    <td><strong>{{ r.code }}</strong></td>
-                    <td>{{ r.name }}</td>
+                    <td><a href="{{ url_for('spaces.detail', room_id=r.id) }}" class="room-table-link"><strong>{{ r.code }}</strong></a></td>
+                    <td><a href="{{ url_for('spaces.detail', room_id=r.id) }}" class="room-table-link">{{ r.name }}</a></td>
                     <td><span class="badge floor-badge">{{ r.floor }}</span></td>
                     <td><span class="badge type-badge">{{ r.room_type }}</span></td>
                     <td><strong>{{ r.capacity }}</strong> 人</td>
                     <td class="equipment-cell">{{ r.equipment or '無特殊設備' }}</td>
                     <td><span class="status-indicator available">● 開放借用</span></td>
                     <td>
-                        <a href="{{ url_for('bookings.index', room_id=r.id) }}" class="btn-inline-book">預約借用</a>
+                        <div style="display: flex; gap: 0.35rem;">
+                            <a href="{{ url_for('spaces.detail', room_id=r.id) }}" class="btn-inline-detail">360 詳情</a>
+                            <a href="{{ url_for('bookings.index', room_id=r.id) }}" class="btn-inline-book">預約借用</a>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -145,7 +148,9 @@
             </div>
 
             <div class="room-card-body">
-                <h2 class="room-name">{{ r.name }}</h2>
+                <h2 class="room-name">
+                    <a href="{{ url_for('spaces.detail', room_id=r.id) }}" class="room-title-link">{{ r.name }}</a>
+                </h2>
                 <div class="room-meta">
                     <span class="capacity-tag">👥 容納人數：<strong>{{ r.capacity }} 人</strong></span>
                 </div>
@@ -173,7 +178,7 @@
             </div>
 
             <div class="room-card-footer">
-                <span class="status-indicator available">● 開放預約</span>
+                <a href="{{ url_for('spaces.detail', room_id=r.id) }}" class="btn-detail">查看規格 / 360°</a>
                 <a href="{{ url_for('bookings.index', room_id=r.id) }}" class="btn-book">立即借用</a>
             </div>
         </article>

@@ -79,3 +79,36 @@ def index():
         view_mode=view_mode,
         total_count=len(rooms),
     )
+
+
+@bp.get("/<int:room_id>")
+def detail(room_id):
+    """前台免登入教室詳細資訊頁，含 360 全景照片瀏覽器與硬體設備規格。"""
+    db = get_db()
+    room = db.execute(
+        """SELECT id, code, name, floor, capacity, room_type, equipment, description,
+                  image_url, panorama_url, floor_plan_x, floor_plan_y, is_active
+           FROM rooms WHERE id = ?""",
+        (room_id,),
+    ).fetchone()
+
+    if room is None:
+        abort(404)
+
+    # 查詢該空間近期的已核准預約紀錄（展現模組整合）
+    upcoming_bookings = db.execute(
+        """SELECT bookings.booking_date, bookings.starts_at, bookings.ends_at,
+                  bookings.borrowed_items, users.name as user_name
+           FROM bookings
+           JOIN users ON users.id = bookings.user_id
+           WHERE bookings.room_id = ? AND bookings.status = '已核准'
+           ORDER BY bookings.starts_at ASC
+           LIMIT 5""",
+        (room_id,),
+    ).fetchall()
+
+    return render_template(
+        "space_detail.html",
+        room=room,
+        upcoming_bookings=upcoming_bookings,
+    )
