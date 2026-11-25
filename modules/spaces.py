@@ -81,6 +81,44 @@ def index():
     )
 
 
+@bp.get("/map")
+def floor_map():
+    """管院各樓層平面圖與互動式教室位置標示。"""
+    db = get_db()
+    all_floors = [r["floor"] for r in db.execute(
+        "SELECT DISTINCT floor FROM rooms WHERE is_active = 1 ORDER BY floor ASC"
+    ).fetchall()]
+
+    highlight_id = request.args.get("highlight", type=int)
+    selected_floor = request.args.get("floor", "").strip()
+
+    # 若有指定 highlight 教室，自動切換至該教室所在樓層
+    if highlight_id:
+        target = db.execute("SELECT floor FROM rooms WHERE id = ?", (highlight_id,)).fetchone()
+        if target:
+            selected_floor = target["floor"]
+
+    if not selected_floor and all_floors:
+        selected_floor = all_floors[0]
+
+    rooms = db.execute(
+        """SELECT id, code, name, floor, capacity, room_type, equipment, description,
+                  floor_plan_x, floor_plan_y, panorama_url
+           FROM rooms
+           WHERE floor = ? AND is_active = 1
+           ORDER BY code ASC""",
+        (selected_floor,),
+    ).fetchall()
+
+    return render_template(
+        "space_map.html",
+        all_floors=all_floors,
+        current_floor=selected_floor,
+        rooms=rooms,
+        highlight_id=highlight_id,
+    )
+
+
 @bp.get("/<int:room_id>")
 def detail(room_id):
     """前台免登入教室詳細資訊頁，含 360 全景照片瀏覽器與硬體設備規格。"""

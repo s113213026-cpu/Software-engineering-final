@@ -12,7 +12,8 @@
         <div class="container header-content">
             <a class="brand" href="{{ url_for('home') }}">管院資源入口</a>
             <nav aria-label="模組導覽">
-                <a href="{{ url_for('spaces.index') }}" {% if request.blueprint == 'spaces' %}aria-current="page"{% endif %}>空間查詢</a>
+                <a href="{{ url_for('spaces.index') }}" {% if request.endpoint == 'spaces.index' %}aria-current="page"{% endif %}>空間查詢</a>
+                <a href="{{ url_for('spaces.floor_map') }}" {% if request.endpoint == 'spaces.floor_map' %}aria-current="page"{% endif %}>管院平面圖</a>
                 <a href="{{ url_for('bookings.index') }}" {% if request.blueprint == 'bookings' %}aria-current="page"{% endif %}>預約借用</a>
                 <a href="{{ url_for('scheduling.index') }}" {% if request.blueprint == 'scheduling' %}aria-current="page"{% endif %}>志願排課</a>
                 {% if g.user and g.user.role == 'admin' %}

@@ -877,3 +877,495 @@ tbody tr + tr td { border-top: 1px solid var(--border); }
         grid-template-columns: 1fr;
     }
 }
+
+/* ========================================================
+   管院大樓平面圖與互動教室位置標示樣式
+   ======================================================== */
+
+.header-action-group {
+    margin-top: 0.6rem;
+}
+
+.btn-map-shortcut {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #ffffff;
+    color: var(--accent);
+    border: 2px solid var(--accent);
+    padding: 0.45rem 1.1rem;
+    border-radius: 0.45rem;
+    font-weight: 750;
+    font-size: 0.95rem;
+    text-decoration: none;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    transition: all 0.18s ease;
+}
+
+.btn-map-shortcut:hover {
+    background: var(--accent);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 98, 81, 0.2);
+    transform: translateY(-2px);
+}
+
+.btn-card-map,
+.btn-inline-map {
+    background: #e0f2f1;
+    color: #00695c;
+    border: 1px solid #80cbc4;
+    padding: 0.25rem 0.55rem;
+    border-radius: 0.3rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.btn-card-map:hover,
+.btn-inline-map:hover {
+    background: #b2dfdb;
+}
+
+.btn-view-on-map {
+    display: block;
+    width: 100%;
+    text-align: center;
+    background: #e0f2f1;
+    color: #00695c;
+    border: 1px solid #80cbc4;
+    padding: 0.55rem 0.9rem;
+    border-radius: 0.4rem;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: all 0.18s ease;
+}
+
+.btn-view-on-map:hover {
+    background: #00695c;
+    color: #ffffff;
+}
+
+/* 樓層切換導覽列 */
+.floor-selector-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 0.65rem;
+    padding: 0.85rem 1.25rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.floor-label {
+    font-weight: 700;
+    color: var(--ink);
+    font-size: 0.95rem;
+}
+
+.floor-tabs {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.floor-tab {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.45rem 1.15rem;
+    border-radius: 0.4rem;
+    font-weight: 700;
+    font-size: 0.92rem;
+    color: #3e5967;
+    background: #f0f4f7;
+    text-decoration: none;
+    border: 1px solid #d0dee5;
+    transition: all 0.18s ease;
+}
+
+.floor-tab:hover {
+    background: #e2ecf1;
+    color: var(--ink);
+}
+
+.floor-tab.active {
+    background: var(--accent);
+    color: #ffffff;
+    border-color: var(--accent);
+    box-shadow: 0 3px 8px rgba(0, 98, 81, 0.25);
+}
+
+/* 平面圖二欄佈局 */
+.map-layout {
+    display: grid;
+    grid-template-columns: 1fr 23rem;
+    gap: 1.75rem;
+    align-items: start;
+}
+
+.map-viewport-card {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 0.65rem;
+    padding: 1.25rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+}
+
+.map-viewport-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.85rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.map-title-badge {
+    font-size: 0.95rem;
+    color: var(--ink);
+}
+
+.map-legend {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.82rem;
+    color: var(--muted);
+}
+
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.legend-dot {
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 50%;
+}
+
+.active-dot {
+    background: #d32f2f;
+    box-shadow: 0 0 0 2px rgba(211, 47, 47, 0.3);
+}
+
+.hall-dot {
+    background: #d5dfe7;
+}
+
+/* 平面圖畫布容器 */
+.map-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1000 / 650;
+    min-height: 400px;
+    background: #f8fafc;
+    border: 1px solid #c2d5e2;
+    border-radius: 0.55rem;
+    overflow: hidden;
+    user-select: none;
+}
+
+.building-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* 平面圖教室標記點 (Marker Pin) */
+.map-pin-marker {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    z-index: 10;
+    transition: transform 0.18s ease;
+}
+
+.map-pin-marker:hover {
+    transform: translate(-50%, -50%) scale(1.15);
+    z-index: 20;
+}
+
+.pin-dot {
+    width: 1rem;
+    height: 1rem;
+    background: #d32f2f;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    margin: 0 auto;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+    position: relative;
+}
+
+.pin-dot::after {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    right: -4px;
+    bottom: -4px;
+    border-radius: 50%;
+    border: 2px solid rgba(211, 47, 47, 0.4);
+    animation: pulsePin 2s infinite ease-out;
+}
+
+.pin-tag {
+    background: #102d3b;
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 0.15rem 0.45rem;
+    border-radius: 0.25rem;
+    white-space: nowrap;
+    margin-top: 0.2rem;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    text-align: center;
+}
+
+/* 選中發光效果 */
+.map-pin-marker.selected-pin {
+    z-index: 30;
+    transform: translate(-50%, -50%) scale(1.25);
+}
+
+.map-pin-marker.selected-pin .pin-dot {
+    background: #00c853;
+    border-color: #ffffff;
+    box-shadow: 0 0 0 5px rgba(0, 200, 83, 0.4), 0 3px 10px rgba(0, 0, 0, 0.4);
+}
+
+.map-pin-marker.selected-pin .pin-dot::after {
+    border-color: #00c853;
+    animation: pulsePin 1.2s infinite ease-out;
+}
+
+.map-pin-marker.selected-pin .pin-tag {
+    background: #004d40;
+    border-color: #00e676;
+    color: #ffffff;
+}
+
+/* 懸停 Tooltip 浮水印 */
+.pin-tooltip {
+    position: absolute;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #152a36;
+    color: #ffffff;
+    padding: 0.4rem 0.7rem;
+    border-radius: 0.35rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+}
+
+.pin-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #152a36;
+}
+
+.map-pin-marker:hover .pin-tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(-4px);
+}
+
+@keyframes pulsePin {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(2.4); opacity: 0; }
+}
+
+.map-footer-hint {
+    margin-top: 0.85rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+    padding: 0.5rem 0.75rem;
+    background: #f7fafc;
+    border-radius: 0.4rem;
+}
+
+/* 右側選取檢查欄 */
+.map-inspector-col {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.active-room-card {
+    border-top: 4px solid var(--accent);
+}
+
+.inspector-badge-row {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.insp-title {
+    font-size: 1.35rem;
+    margin: 0 0 0.35rem;
+    color: var(--ink);
+}
+
+.insp-code-highlight {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+}
+
+.insp-desc {
+    font-size: 0.88rem;
+    color: var(--muted);
+    line-height: 1.55;
+    margin: 0 0 1rem;
+}
+
+.insp-equipment-box {
+    background: #f8fafc;
+    border: 1px solid #e1ebf0;
+    padding: 0.65rem 0.85rem;
+    border-radius: 0.4rem;
+    margin-bottom: 1.2rem;
+}
+
+.insp-equipment-text {
+    font-size: 0.85rem;
+    color: #2e4a5a;
+    margin: 0.25rem 0 0;
+    line-height: 1.4;
+}
+
+.insp-action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.btn-detail-large {
+    display: block;
+    text-align: center;
+    background: #ffffff;
+    color: var(--accent);
+    border: 2px solid var(--accent);
+    padding: 0.6rem;
+    border-radius: 0.4rem;
+    font-weight: 750;
+    font-size: 0.95rem;
+    text-decoration: none;
+    transition: all 0.18s ease;
+}
+
+.btn-detail-large:hover {
+    background: #e0f2f1;
+}
+
+.btn-book-large {
+    display: block;
+    text-align: center;
+    background: var(--accent);
+    color: #ffffff;
+    padding: 0.65rem;
+    border-radius: 0.4rem;
+    font-weight: 750;
+    font-size: 0.95rem;
+    text-decoration: none;
+    box-shadow: 0 3px 8px rgba(0, 98, 81, 0.2);
+    transition: all 0.18s ease;
+}
+
+.btn-book-large:hover {
+    background: #004d40;
+    box-shadow: 0 5px 12px rgba(0, 98, 81, 0.3);
+}
+
+/* 該樓層教室快捷按鈕清單 */
+.floor-rooms-list-card h3 {
+    font-size: 1.05rem;
+    margin: 0 0 0.75rem;
+    color: var(--ink);
+}
+
+.floor-room-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    max-height: 18rem;
+    overflow-y: auto;
+}
+
+.room-quick-btn {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    background: #f7fafc;
+    border: 1px solid #d8e5ec;
+    border-radius: 0.35rem;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s ease;
+}
+
+.room-quick-btn:hover {
+    background: #eaf1f5;
+    border-color: #b0c9d6;
+}
+
+.room-quick-btn.active {
+    background: #e0f2f1;
+    border-color: var(--accent);
+    box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.room-quick-btn.active strong {
+    color: var(--accent);
+}
+
+.btn-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-room-name {
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.btn-room-cap {
+    font-size: 0.8rem;
+    color: #557585;
+    background: #e8f0f4;
+    padding: 0.15rem 0.4rem;
+    border-radius: 0.25rem;
+}
+
+/* 響應式調整 */
+@media (max-width: 58rem) {
+    .map-layout {
+        grid-template-columns: 1fr;
+    }
+}

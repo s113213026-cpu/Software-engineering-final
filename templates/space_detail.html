@@ -184,6 +184,11 @@
                     <dd>暨大管理學院辦公室</dd>
                 </div>
             </dl>
+            <div style="margin-top: 1.1rem; padding-top: 0.9rem; border-top: 1px dashed var(--border);">
+                <a href="{{ url_for('spaces.floor_map', floor=room.floor, highlight=room.id) }}" class="btn-view-on-map">
+                    📍 在管院平面圖上標示位置
+                </a>
+            </div>
         </div>
 
         <!-- 近期核准借用狀況（展現整合能力） -->

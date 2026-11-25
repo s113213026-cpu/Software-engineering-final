@@ -1,0 +1,246 @@
+{% extends 'base.html' %}
+{% block title %}管院平面圖導覽與教室標示｜{{ current_floor }}{% endblock %}
+
+{% block content %}
+<div class="spaces-page-header">
+    <p class="eyebrow">暨南大學管理學院空間導覽</p>
+    <h1>管院大樓平面圖</h1>
+    <p class="muted">切換樓層檢視教室分佈。點擊地圖上的定位標記或右側教室清單，即可即時查看空間規格與 360 導覽。</p>
+</div>
+
+<!-- 樓層切換導覽列 -->
+<div class="floor-selector-bar">
+    <span class="floor-label">選擇檢視樓層：</span>
+    <div class="floor-tabs">
+        {% for f in all_floors %}
+        <a href="{{ url_for('spaces.floor_map', floor=f) }}"
+           class="floor-tab {% if current_floor == f %}active{% endif %}">
+           🏢 {{ f }}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="map-layout">
+    <!-- 平面圖主畫布區域 -->
+    <div class="map-viewport-card">
+        <div class="map-viewport-header">
+            <span class="map-title-badge">目前位置：<strong>{{ current_floor }} 平面配置圖</strong></span>
+            <span class="map-legend">
+                <span class="legend-item"><span class="legend-dot active-dot"></span> 教室位置標記</span>
+                <span class="legend-item"><span class="legend-dot hall-dot"></span> 走廊與公共空間</span>
+            </span>
+        </div>
+
+        <div class="map-container" id="map-container">
+            <!-- 暨大管院特色結構 SVG 建築底圖 (精準、銳利、向量響應式) -->
+            <svg class="building-svg" viewBox="0 0 1000 650" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- 背景大樓主外廓 -->
+                <rect x="30" y="30" width="940" height="590" rx="16" fill="#f8fafc" stroke="#b0c4de" stroke-width="3"/>
+
+                <!-- 中庭挑高採光區 (Atrium) -->
+                <rect x="360" y="180" width="280" height="290" rx="12" fill="#e2edf5" stroke="#90b2cb" stroke-width="2" stroke-dasharray="6,4"/>
+                <text x="500" y="335" font-size="16" font-weight="700" fill="#587f9d" text-anchor="middle">☀️ 管院採光中庭 (Atrium)</text>
+
+                <!-- 主要走廊動線 (Corridors) -->
+                <!-- 環中庭走道 -->
+                <rect x="300" y="130" width="400" height="390" fill="none" stroke="#d5dfe7" stroke-width="28" rx="8"/>
+                <!-- 西側長廊 -->
+                <line x1="80" y1="325" x2="300" y2="325" stroke="#d5dfe7" stroke-width="24"/>
+                <!-- 東側長廊 -->
+                <line x1="700" y1="325" x2="920" y2="325" stroke="#d5dfe7" stroke-width="24"/>
+
+                <!-- 西翼空間分區 (West Wing) -->
+                <rect x="60" y="60" width="210" height="230" rx="8" fill="#edf3f8" stroke="#cbdbe6" stroke-width="2"/>
+                <text x="165" y="170" font-size="14" font-weight="600" fill="#7a96a8" text-anchor="middle">西翼教學研討區</text>
+
+                <rect x="60" y="360" width="210" height="230" rx="8" fill="#edf3f8" stroke="#cbdbe6" stroke-width="2"/>
+                <text x="165" y="480" font-size="14" font-weight="600" fill="#7a96a8" text-anchor="middle">多功能專業教室區</text>
+
+                <!-- 東翼空間分區 (East Wing) -->
+                <rect x="730" y="60" width="210" height="230" rx="8" fill="#edf3f8" stroke="#cbdbe6" stroke-width="2"/>
+                <text x="835" y="170" font-size="14" font-weight="600" fill="#7a96a8" text-anchor="middle">東翼階梯與演講廳</text>
+
+                <rect x="730" y="360" width="210" height="230" rx="8" fill="#edf3f8" stroke="#cbdbe6" stroke-width="2"/>
+                <text x="835" y="480" font-size="14" font-weight="600" fill="#7a96a8" text-anchor="middle">專業電腦與研討室</text>
+
+                <!-- 北側與南側區域 -->
+                <rect x="360" y="60" width="280" height="60" rx="6" fill="#f0f5f9" stroke="#cbdbe6" stroke-width="1.5"/>
+                <text x="500" y="96" font-size="13" font-weight="600" fill="#7a96a8" text-anchor="middle">行政辦公室與教師研究室</text>
+
+                <rect x="360" y="530" width="280" height="60" rx="6" fill="#f0f5f9" stroke="#cbdbe6" stroke-width="1.5"/>
+                <text x="500" y="566" font-size="13" font-weight="600" fill="#7a96a8" text-anchor="middle">主要出入口大廳 (Main Entrance)</text>
+
+                <!-- 樓梯與電梯圖示 -->
+                <rect x="290" y="55" width="45" height="55" fill="#fce4ec" stroke="#f48fb1" stroke-width="1.5" rx="4"/>
+                <text x="312" y="88" font-size="11" font-weight="700" fill="#ad1457" text-anchor="middle">🛗 電梯</text>
+
+                <rect x="665" y="55" width="45" height="55" fill="#fff3e0" stroke="#ffb74d" stroke-width="1.5" rx="4"/>
+                <text x="687" y="88" font-size="11" font-weight="700" fill="#e65100" text-anchor="middle">🪜 樓梯</text>
+            </svg>
+
+            <!-- 教室位置互動標記 (HTML Pin Overlays) -->
+            {% for r in rooms %}
+            <div class="map-pin-marker {% if highlight_id == r.id %}selected-pin{% endif %}"
+                 id="pin-{{ r.id }}"
+                 style="left: {{ r.floor_plan_x }}%; top: {{ r.floor_plan_y }}%;"
+                 data-room-id="{{ r.id }}"
+                 data-code="{{ r.code }}"
+                 data-name="{{ r.name }}"
+                 data-type="{{ r.room_type }}"
+                 data-capacity="{{ r.capacity }}"
+                 data-equipment="{{ r.equipment or '無特殊設備' }}"
+                 data-desc="{{ r.description or '管院標準教學研討空間。' }}"
+                 data-pano="{{ r.panorama_url }}"
+                 data-detail-url="{{ url_for('spaces.detail', room_id=r.id) }}"
+                 data-book-url="{{ url_for('bookings.index', room_id=r.id) }}">
+                <div class="pin-dot"></div>
+                <div class="pin-tag">{{ r.code }}</div>
+                <!-- 懸停 Tooltip -->
+                <div class="pin-tooltip">
+                    <strong>{{ r.code }} {{ r.name }}</strong>
+                    <span>{{ r.room_type }} ‧ {{ r.capacity }}人</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="map-footer-hint">
+            💡 <strong>使用技巧：</strong>點擊平面圖上的圓點或教室標籤，右側會即時切換顯示該教室的詳細規格與 360 預約入口。
+        </div>
+    </div>
+
+    <!-- 右側：選取教室檢查卡與該樓層清單 -->
+    <aside class="map-inspector-col">
+        <!-- 選定教室重點卡 (即時聯動) -->
+        <div class="sidebar-card active-room-card" id="room-inspector-card">
+            <div class="inspector-badge-row">
+                <span class="badge floor-badge" id="insp-floor">{{ current_floor }}</span>
+                <span class="badge type-badge" id="insp-type">教室類型</span>
+                <span class="badge capacity-badge" id="insp-capacity">容納人數</span>
+            </div>
+
+            <h2 class="insp-title" id="insp-title">請選取地圖上的教室</h2>
+            <div class="insp-code-highlight" id="insp-code">-</div>
+
+            <p class="insp-desc" id="insp-desc">點擊地圖上的紅點或右側清單查看詳細資訊。</p>
+
+            <div class="insp-equipment-box">
+                <span class="equipment-label">硬體設施：</span>
+                <p id="insp-equipment" class="insp-equipment-text">投影機、講台等設備</p>
+            </div>
+
+            <div class="insp-action-buttons">
+                <a href="#" id="insp-detail-btn" class="btn-detail-large">
+                    進入 360° 詳細頁
+                </a>
+                <a href="#" id="insp-book-btn" class="btn-book-large">
+                    立即預約借用
+                </a>
+            </div>
+        </div>
+
+        <!-- 該樓層所有空間清單 -->
+        <div class="sidebar-card floor-rooms-list-card">
+            <h3>{{ current_floor }} 教室清單（共 {{ rooms|length }} 間）</h3>
+            {% if rooms %}
+            <div class="floor-room-buttons">
+                {% for r in rooms %}
+                <button type="button"
+                        class="room-quick-btn {% if highlight_id == r.id %}active{% endif %}"
+                        data-target-id="{{ r.id }}">
+                    <div class="btn-left">
+                        <strong>{{ r.code }}</strong>
+                        <span class="btn-room-name">{{ r.name }}</span>
+                    </div>
+                    <span class="btn-room-cap">{{ r.capacity }} 人</span>
+                </button>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="muted">該樓層目前尚無登記之教室。</p>
+            {% endif %}
+        </div>
+    </aside>
+</div>
+
+<!-- 互動地圖前端腳本 -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const pins = document.querySelectorAll(".map-pin-marker");
+    const quickBtns = document.querySelectorAll(".room-quick-btn");
+
+    const inspTitle = document.getElementById("insp-title");
+    const inspCode = document.getElementById("insp-code");
+    const inspType = document.getElementById("insp-type");
+    const inspCapacity = document.getElementById("insp-capacity");
+    const inspDesc = document.getElementById("insp-desc");
+    const inspEquipment = document.getElementById("insp-equipment");
+    const inspDetailBtn = document.getElementById("insp-detail-btn");
+    const inspBookBtn = document.getElementById("insp-book-btn");
+
+    function selectRoom(roomId) {
+        let selectedPin = null;
+        pins.forEach(pin => {
+            if (pin.getAttribute("data-room-id") === String(roomId)) {
+                pin.classList.add("selected-pin");
+                selectedPin = pin;
+            } else {
+                pin.classList.remove("selected-pin");
+            }
+        });
+
+        quickBtns.forEach(btn => {
+            if (btn.getAttribute("data-target-id") === String(roomId)) {
+                btn.classList.add("active");
+            } else {
+                btn.classList.remove("active");
+            }
+        });
+
+        if (selectedPin) {
+            const code = selectedPin.getAttribute("data-code");
+            const name = selectedPin.getAttribute("data-name");
+            const type = selectedPin.getAttribute("data-type");
+            const capacity = selectedPin.getAttribute("data-capacity");
+            const desc = selectedPin.getAttribute("data-desc");
+            const equip = selectedPin.getAttribute("data-equipment");
+            const detailUrl = selectedPin.getAttribute("data-detail-url");
+            const bookUrl = selectedPin.getAttribute("data-book-url");
+
+            inspTitle.textContent = name;
+            inspCode.textContent = code;
+            inspType.textContent = type;
+            inspCapacity.textContent = `👥 ${capacity} 人`;
+            inspDesc.textContent = desc;
+            inspEquipment.textContent = equip;
+            inspDetailBtn.href = detailUrl;
+            inspBookBtn.href = bookUrl;
+        }
+    }
+
+    // 綁定地圖標記點擊
+    pins.forEach(pin => {
+        pin.addEventListener("click", function () {
+            const id = this.getAttribute("data-room-id");
+            selectRoom(id);
+        });
+    });
+
+    // 綁定右側清單按鈕點擊
+    quickBtns.forEach(btn => {
+        btn.addEventListener("click", function () {
+            const id = this.getAttribute("data-target-id");
+            selectRoom(id);
+        });
+    });
+
+    // 預設選取初始教室（若有 highlight 則選 highlight，否則選第一個）
+    {% if highlight_id %}
+    selectRoom("{{ highlight_id }}");
+    {% elif rooms and rooms|length > 0 %}
+    selectRoom("{{ rooms[0].id }}");
+    {% endif %}
+});
+</script>
+{% endblock %}
