@@ -1,33 +1,193 @@
 {% extends 'base.html' %}
-{% block title %}管院空間查詢{% endblock %}
+{% block title %}管院空間查詢與瀏覽{% endblock %}
 
 {% block content %}
-<h1>管院空間查詢</h1>
-<p class="muted">下表為測試用空間。</p>
-<div class="table-wrap">
-    <table aria-label="教室清單">
-        <thead>
-            <tr>
-                <th scope="col">教室代號</th>
-                <th scope="col">空間名稱</th>
-                <th scope="col">樓層</th>
-                <th scope="col">類型</th>
-                <th scope="col">容量</th>
-                <th scope="col">主要設備</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for room in rooms %}
-            <tr>
-                <td><strong>{{ room.code }}</strong></td>
-                <td>{{ room.name }}</td>
-                <td>{{ room.floor }}</td>
-                <td>{{ room.room_type }}</td>
-                <td>{{ room.capacity }} 人</td>
-                <td style="max-width: 20rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ room.equipment or '-' }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="spaces-page-header">
+    <div>
+        <p class="eyebrow">暨南大學管理學院</p>
+        <h1>管院空間查詢</h1>
+        <p class="muted">免登入即可查閱所有教學、演講、電腦及研討教室之硬體規格、容納人數與設備清單。</p>
+    </div>
 </div>
+
+<!-- 多條件篩選工具列 -->
+<section class="filter-panel" aria-label="空間篩選">
+    <form method="get" class="filter-form">
+        <!-- 保留當前檢視模式 -->
+        <input type="hidden" name="view" value="{{ view_mode }}">
+
+        <div class="filter-row">
+            <!-- 關鍵字搜尋 -->
+            <div class="filter-group search-group">
+                <label for="q">關鍵字搜尋</label>
+                <input type="text" id="q" name="q" value="{{ q }}" placeholder="輸入教室編號、名稱或設備（如：管268、電腦、投影機）">
+            </div>
+
+            <!-- 樓層篩選 -->
+            <div class="filter-group">
+                <label for="floor">樓層</label>
+                <select id="floor" name="floor">
+                    <option value="">全部樓層</option>
+                    {% for f in all_floors %}
+                    <option value="{{ f }}" {% if selected_floor == f %}selected{% endif %}>{{ f }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- 空間類型篩選 -->
+            <div class="filter-group">
+                <label for="type">空間類型</label>
+                <select id="type" name="type">
+                    <option value="">全部類型</option>
+                    {% for t in all_types %}
+                    <option value="{{ t }}" {% if selected_type == t %}selected{% endif %}>{{ t }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- 容納人數篩選 -->
+            <div class="filter-group">
+                <label for="capacity">容納人數</label>
+                <select id="capacity" name="capacity">
+                    <option value="">不限人數</option>
+                    <option value="30" {% if min_capacity == '30' %}selected{% endif %}>30 人以上</option>
+                    <option value="50" {% if min_capacity == '50' %}selected{% endif %}>50 人以上</option>
+                    <option value="80" {% if min_capacity == '80' %}selected{% endif %}>80 人以上</option>
+                    <option value="100" {% if min_capacity == '100' %}selected{% endif %}>100 人以上</option>
+                </select>
+            </div>
+
+            <!-- 排序方式 -->
+            <div class="filter-group">
+                <label for="sort">排序方式</label>
+                <select id="sort" name="sort">
+                    <option value="floor_code" {% if sort_by == 'floor_code' %}selected{% endif %}>依樓層與代號</option>
+                    <option value="capacity_desc" {% if sort_by == 'capacity_desc' %}selected{% endif %}>容納人數（大 → 小）</option>
+                    <option value="capacity_asc" {% if sort_by == 'capacity_asc' %}selected{% endif %}>容納人數（小 → 大）</option>
+                    <option value="name" {% if sort_by == 'name' %}selected{% endif %}>空間名稱</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="filter-actions">
+            <button type="submit" class="btn-primary">套用篩選</button>
+            <a href="{{ url_for('spaces.index') }}" class="btn-reset">重設條件</a>
+        </div>
+    </form>
+</section>
+
+<!-- 狀態列：顯示筆數與切換模式 -->
+<div class="view-toolbar">
+    <div class="result-count">
+        共找到 <strong>{{ total_count }}</strong> 間符合條件的空間
+        {% if q or selected_floor or selected_type or min_capacity %}
+        <span class="filter-tags-hint">（已套用過濾條件）</span>
+        {% endif %}
+    </div>
+    <div class="view-switch">
+        <a href="{{ url_for('spaces.index', q=q, floor=selected_floor, type=selected_type, capacity=min_capacity, sort=sort_by, view='grid') }}"
+           class="view-btn {% if view_mode != 'table' %}active{% endif %}">
+           ■ 卡片檢視
+        </a>
+        <a href="{{ url_for('spaces.index', q=q, floor=selected_floor, type=selected_type, capacity=min_capacity, sort=sort_by, view='table') }}"
+           class="view-btn {% if view_mode == 'table' %}active{% endif %}">
+           ≡ 清單檢視
+        </a>
+    </div>
+</div>
+
+{% if rooms %}
+    {% if view_mode == 'table' %}
+    <!-- 表格檢視 -->
+    <div class="table-wrap">
+        <table aria-label="教室詳細清單">
+            <thead>
+                <tr>
+                    <th scope="col">教室代號</th>
+                    <th scope="col">空間名稱</th>
+                    <th scope="col">樓層</th>
+                    <th scope="col">空間類型</th>
+                    <th scope="col">容納人數</th>
+                    <th scope="col">主要硬體設備</th>
+                    <th scope="col">預約狀態</th>
+                    <th scope="col">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in rooms %}
+                <tr>
+                    <td><strong>{{ r.code }}</strong></td>
+                    <td>{{ r.name }}</td>
+                    <td><span class="badge floor-badge">{{ r.floor }}</span></td>
+                    <td><span class="badge type-badge">{{ r.room_type }}</span></td>
+                    <td><strong>{{ r.capacity }}</strong> 人</td>
+                    <td class="equipment-cell">{{ r.equipment or '無特殊設備' }}</td>
+                    <td><span class="status-indicator available">● 開放借用</span></td>
+                    <td>
+                        <a href="{{ url_for('bookings.index', room_id=r.id) }}" class="btn-inline-book">預約借用</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <!-- 卡片檢視 (Grid View) -->
+    <div class="room-grid">
+        {% for r in rooms %}
+        <article class="room-card">
+            <div class="room-card-header">
+                <div class="room-code-badge">{{ r.code }}</div>
+                <div class="room-badges">
+                    <span class="badge floor-badge">{{ r.floor }}</span>
+                    <span class="badge type-badge">{{ r.room_type }}</span>
+                </div>
+            </div>
+
+            <div class="room-card-body">
+                <h2 class="room-name">{{ r.name }}</h2>
+                <div class="room-meta">
+                    <span class="capacity-tag">👥 容納人數：<strong>{{ r.capacity }} 人</strong></span>
+                </div>
+
+                <p class="room-desc">
+                    {{ r.description or '國立暨南國際大學管理學院專業教學空間。' }}
+                </p>
+
+                <div class="room-equipment">
+                    <span class="equipment-label">配備設施：</span>
+                    <div class="equipment-pills">
+                        {% if r.equipment %}
+                            {% for item in r.equipment.split('、') %}
+                                {% for sub_item in item.split(',') %}
+                                    {% if sub_item.strip() %}
+                                    <span class="pill">{{ sub_item.strip() }}</span>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
+                        {% else %}
+                            <span class="pill muted-pill">標準課桌椅</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="room-card-footer">
+                <span class="status-indicator available">● 開放預約</span>
+                <a href="{{ url_for('bookings.index', room_id=r.id) }}" class="btn-book">立即借用</a>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+{% else %}
+    <!-- 無符合資料之空狀態 -->
+    <div class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <h3>查無符合條件的管院空間</h3>
+        <p class="muted">找不到符合篩選條件「{{ q }}」的教室，請嘗試縮小關鍵字範圍或重設篩選。</p>
+        <a href="{{ url_for('spaces.index') }}" class="btn-primary" style="margin-top: 1rem; display: inline-block;">重設所有條件</a>
+    </div>
+{% endif %}
 {% endblock %}
