@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% from 'booking_ui.html' import notices, status_badge, time_range %}
+{% block title %}借用審核與領還{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='bookings.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="booking-page">
+    <div class="booking-heading">
+        <h1>借用審核與領還</h1>
+        <a class="booking-button" href="{{ url_for('bookings.index') }}">返回借用週曆</a>
+    </div>
+    {{ notices() }}
+
+    {% for booking in bookings %}
+    <article class="booking-panel booking-admin-card" aria-labelledby="booking-title-{{ booking.id }}">
+        <div class="booking-heading">
+            <h2 id="booking-title-{{ booking.id }}">{{ booking.code }} {{ booking.room_name }}</h2>
+            {{ status_badge(booking) }}
+        </div>
+        <p class="booking-admin-time">
+            <time datetime="{{ booking.booking_date }}">{{ booking.booking_date }}</time>
+            <strong>{{ time_range(booking) }}</strong>
+        </p>
+        <dl class="booking-details">
+            <div><dt>申請人</dt><dd>{{ booking.applicant_name }}（{{ booking.username }}）</dd></div>
+            <div><dt>借用物品</dt><dd>{{ booking.borrowed_items or '無' }}</dd></div>
+            {% if booking.reason %}
+            <div><dt>借用事由</dt><dd>{{ booking.reason }}</dd></div>
+            {% endif %}
+            {% if booking.review_comment %}
+            <div><dt>審核意見</dt><dd>{{ booking.review_comment }}</dd></div>
+            {% endif %}
+            {% if booking.picked_up_at %}
+            <div><dt>領用登記</dt><dd>{{ booking.picked_up_at }}（{{ booking.picked_up_by }}）</dd></div>
+            {% endif %}
+            {% if booking.returned_at %}
+            <div><dt>歸還確認</dt><dd>{{ booking.returned_at }}（{{ booking.returned_by }}）</dd></div>
+            {% endif %}
+        </dl>
+        {% if booking.status == '待審核' %}
+        <form method="post" action="{{ url_for('bookings.admin_action', booking_id=booking.id) }}" class="booking-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label for="comment-{{ booking.id }}">審核意見（選填）
+                <textarea id="comment-{{ booking.id }}" name="comment" maxlength="300" rows="2"></textarea>
+            </label>
+            <div class="booking-actions">
+                <button class="booking-button booking-primary" name="action" value="approve" type="submit">核准</button>
+                <button class="booking-button booking-decline" name="action" value="reject" type="submit">退件</button>
+            </div>
+        </form>
+        {% elif booking.status == '已核准' and not booking.is_returned %}
+        <form method="post" action="{{ url_for('bookings.admin_action', booking_id=booking.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% if booking.is_picked_up %}
+            <button class="booking-button booking-primary" name="action" value="return" type="submit">確認歸還</button>
+            {% else %}
+            <button class="booking-button booking-primary" name="action" value="pickup" type="submit">登記領用</button>
+            {% endif %}
+        </form>
+        {% endif %}
+    </article>
+    {% else %}
+    <p class="empty">目前沒有借用申請。</p>
+    {% endfor %}
+</div>
+{% endblock %}

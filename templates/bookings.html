@@ -1,21 +1,114 @@
 {% extends 'base.html' %}
+{% from 'booking_ui.html' import notices, status_badge, time_range %}
 {% block title %}空間與物品預約借用{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='bookings.css') }}">
+{% endblock %}
 
 {% block content %}
-<h1>空間與物品預約借用</h1>
-<h2>我的借用紀錄</h2>
-{% if bookings %}
-<div class="table-wrap">
-    <table aria-label="借用紀錄">
-        <thead><tr><th scope="col">教室</th><th scope="col">借用開始</th><th scope="col">借用結束</th><th scope="col">狀態</th></tr></thead>
-        <tbody>
-            {% for booking in bookings %}
-            <tr><td>{{ booking.code }}</td><td>{{ booking.starts_at }}</td><td>{{ booking.ends_at }}</td><td>{{ booking.status }}</td></tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="booking-page">
+    <div class="booking-heading">
+        <h1>空間與物品預約借用</h1>
+        <div class="booking-actions">
+            {% if g.user.role == 'admin' %}
+            <a class="booking-button" href="{{ url_for('bookings.admin_index') }}">借用審核與領還</a>
+            {% endif %}
+            {% if rooms %}
+            <a class="booking-button booking-primary" href="{{ url_for('bookings.create_booking', room_id=room_id, date=selected_date.isoformat()) }}">新增借用申請</a>
+            {% endif %}
+        </div>
+    </div>
+    {{ notices() }}
+
+    <section aria-labelledby="booking-week-title">
+        <h2 id="booking-week-title">教室借用週曆</h2>
+        {% if rooms %}
+        <div class="booking-panel booking-week">
+            <form class="booking-filter" method="get" action="{{ url_for('bookings.index') }}">
+                <label for="week-room">教室
+                    <select id="week-room" name="room_id">
+                        {% for room in rooms %}
+                        <option value="{{ room.id }}" {% if room.id == room_id %}selected{% endif %}>{{ room.code }} {{ room.name }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+                <label for="week-date">選擇日期
+                    <input id="week-date" type="date" name="date" value="{{ selected_date.isoformat() }}" required>
+                </label>
+                <button class="booking-button booking-primary" type="submit">查詢</button>
+            </form>
+            <div class="booking-range">
+                <p>{{ week[0].isoformat() }} 至 {{ week[-1].isoformat() }}</p>
+                <nav class="booking-actions" aria-label="週曆切換">
+                    {% if previous_week %}
+                    <a class="booking-button" href="{{ url_for('bookings.index', room_id=room_id, date=previous_week.isoformat()) }}">上一週</a>
+                    {% endif %}
+                    <a class="booking-button" href="{{ url_for('bookings.index', room_id=room_id, date=today.isoformat()) }}">本週</a>
+                    {% if next_week %}
+                    <a class="booking-button" href="{{ url_for('bookings.index', room_id=room_id, date=next_week.isoformat()) }}">下一週</a>
+                    {% endif %}
+                </nav>
+            </div>
+
+            <div class="booking-calendar">
+                {% for day in week %}
+                {% set day_key = day.isoformat() %}
+                <section class="booking-day{% if day == today %} booking-day-today{% endif %}" aria-labelledby="booking-day-{{ day_key }}">
+                    <div class="booking-day-heading">
+                        <h3 id="booking-day-{{ day_key }}">{{ weekdays[day.weekday()] }} <time datetime="{{ day_key }}">{{ day.month }}/{{ day.day }}</time></h3>
+                        <a href="{{ url_for('bookings.create_booking', room_id=room_id, date=day_key) }}" aria-label="申請 {{ day_key }} 的借用">申請</a>
+                    </div>
+                    <ul class="booking-slots">
+                        {% for entry in by_day[day_key] %}
+                        <li>
+                            <strong>{{ time_range(entry) }}</strong>
+                            {{ status_badge(entry) }}
+                        </li>
+                        {% else %}
+                        <li class="booking-day-empty">暫無登記</li>
+                        {% endfor %}
+                    </ul>
+                </section>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <p class="empty">目前沒有開放借用的空間。</p>
+        {% endif %}
+    </section>
+
+    <section aria-labelledby="booking-history-title">
+        <h2 id="booking-history-title">我的借用紀錄</h2>
+        {% if bookings %}
+        <div class="table-wrap">
+            <table class="booking-history" aria-labelledby="booking-history-title">
+                <thead>
+                    <tr><th scope="col">教室</th><th scope="col">借用時段</th><th scope="col">物品</th><th scope="col">狀態</th><th scope="col">審核意見</th></tr>
+                </thead>
+                <tbody>
+                    {% for booking in bookings %}
+                    <tr>
+                        <td><strong>{{ booking.code }}</strong><br>{{ booking.room_name }}</td>
+                        <td>{{ booking.booking_date }}<br>{{ time_range(booking) }}</td>
+                        <td>{{ booking.borrowed_items or '無' }}</td>
+                        <td>
+                            {{ status_badge(booking) }}
+                            {% if booking.picked_up_at or booking.returned_at %}
+                            <small class="booking-history-audit">
+                                {% if booking.picked_up_at %}領用 {{ booking.picked_up_at }}{% endif %}
+                                {% if booking.returned_at %}<br>歸還 {{ booking.returned_at }}{% endif %}
+                            </small>
+                            {% endif %}
+                        </td>
+                        <td class="booking-comment">{{ booking.review_comment or '無' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="empty">目前沒有借用紀錄。</p>
+        {% endif %}
+    </section>
 </div>
-{% else %}
-<p class="empty">目前沒有借用紀錄。</p>
-{% endif %}
 {% endblock %}

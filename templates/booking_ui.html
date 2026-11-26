@@ -1,0 +1,23 @@
+{% macro status_badge(booking) %}
+    {% if booking.status == '已核准' and booking.is_returned %}
+    <span class="booking-status booking-confirmed">已歸還</span>
+    {% elif booking.status == '已核准' and booking.is_picked_up %}
+    <span class="booking-status booking-confirmed">已領用</span>
+    {% elif booking.status == '已核准' %}
+    <span class="booking-status booking-confirmed">已核准</span>
+    {% elif booking.status == '待審核' %}
+    <span class="booking-status booking-pending">待審核</span>
+    {% else %}
+    <span class="booking-status">{{ booking.status }}</span>
+    {% endif %}
+{% endmacro %}
+
+{% macro time_range(booking) %}
+    {{ booking.starts_at[11:16] }}–{{ booking.ends_at[11:16] }}
+{% endmacro %}
+
+{% macro notices() %}
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+    <p class="booking-notice booking-notice-{{ category }}" role="{{ 'alert' if category == 'error' else 'status' }}">{{ message }}</p>
+    {% endfor %}
+{% endmacro %}

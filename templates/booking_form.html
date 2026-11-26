@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block title %}新增借用申請{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='bookings.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="booking-page">
+    <div class="booking-heading">
+        <h1>新增借用申請</h1>
+        <a class="booking-button" href="{{ url_for('bookings.index', room_id=form.room_id, date=form.date) }}">返回借用週曆</a>
+    </div>
+
+    {% if error %}
+    <p class="booking-notice booking-notice-error" role="alert">{{ error }}</p>
+    {% endif %}
+
+    {% if rooms %}
+    <form class="booking-panel booking-form" method="post" action="{{ url_for('bookings.create_booking') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="booking-fields">
+            <label for="booking-room">借用教室
+                <select id="booking-room" name="room_id" required>
+                    <option value="">請選擇教室</option>
+                    {% for room in rooms %}
+                    <option value="{{ room.id }}" {% if room.id == form.room_id %}selected{% endif %}>{{ room.code }} {{ room.name }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label for="booking-date">借用日期
+                <input id="booking-date" type="date" name="date" value="{{ form.date }}" required>
+            </label>
+            <label for="booking-start">開始時間
+                <input id="booking-start" type="time" name="start" value="{{ form.start }}" required>
+            </label>
+            <label for="booking-end">結束時間
+                <input id="booking-end" type="time" name="end" value="{{ form.end }}" required>
+            </label>
+        </div>
+        <fieldset>
+            <legend>借用物品（可複選）</legend>
+            <div class="booking-items">
+                {% for item in item_choices %}
+                <label><input type="checkbox" name="items" value="{{ item }}" {% if item in form['items'] %}checked{% endif %}> {{ item }}</label>
+                {% endfor %}
+            </div>
+        </fieldset>
+        <label for="booking-reason">借用事由（選填）
+            <textarea id="booking-reason" name="reason" rows="3" maxlength="300">{{ form.reason }}</textarea>
+        </label>
+        <div><button class="booking-button booking-primary" type="submit">送出申請</button></div>
+    </form>
+    {% else %}
+    <p class="empty">目前沒有開放借用的空間。</p>
+    {% endif %}
+</div>
+{% endblock %}
