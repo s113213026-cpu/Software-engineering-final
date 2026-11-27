@@ -13,7 +13,7 @@
             {% if g.user.role == 'admin' %}
             <a class="booking-button" href="{{ url_for('bookings.admin_index') }}">借用審核與領還</a>
             {% endif %}
-            {% if rooms %}
+            {% if room_id is not none %}
             <a class="booking-button booking-primary" href="{{ url_for('bookings.create_booking', room_id=room_id, date=selected_date.isoformat()) }}">新增借用申請</a>
             {% endif %}
         </div>
@@ -26,7 +26,10 @@
         <div class="booking-panel booking-week">
             <form class="booking-filter" method="get" action="{{ url_for('bookings.index') }}">
                 <label for="week-room">教室
-                    <select id="week-room" name="room_id">
+                    <select id="week-room" name="room_id" required>
+                        {% if room_id is none %}
+                        <option value="" selected disabled>請選擇教室</option>
+                        {% endif %}
                         {% for room in rooms %}
                         <option value="{{ room.id }}" {% if room.id == room_id %}selected{% endif %}>{{ room.code }} {{ room.name }}</option>
                         {% endfor %}
@@ -37,6 +40,7 @@
                 </label>
                 <button class="booking-button booking-primary" type="submit">查詢</button>
             </form>
+            {% if room_id is not none %}
             <div class="booking-range">
                 <p>{{ week[0].isoformat() }} 至 {{ week[-1].isoformat() }}</p>
                 <nav class="booking-actions" aria-label="週曆切換">
@@ -59,10 +63,18 @@
                         <a href="{{ url_for('bookings.create_booking', room_id=room_id, date=day_key) }}" aria-label="申請 {{ day_key }} 的借用">申請</a>
                     </div>
                     <ul class="booking-slots">
-                        {% for entry in by_day[day_key] %}
+                        {% for entry in by_day[day_key] | sort(attribute='starts_at') %}
                         <li>
                             <strong>{{ time_range(entry) }}</strong>
-                            {{ status_badge(entry) }}
+                            {% if entry.is_course %}
+                                {% if entry.status == '已確認' %}
+                                <span class="booking-status booking-course">已確認排課</span>
+                                {% else %}
+                                <span class="booking-status">排課志願</span>
+                                {% endif %}
+                            {% else %}
+                                {{ status_badge(entry) }}
+                            {% endif %}
                         </li>
                         {% else %}
                         <li class="booking-day-empty">暫無登記</li>
@@ -71,6 +83,9 @@
                 </section>
                 {% endfor %}
             </div>
+            {% else %}
+            <p class="booking-notice booking-notice-error" role="alert">原選的教室目前無法借用，請改選其他教室。</p>
+            {% endif %}
         </div>
         {% else %}
         <p class="empty">目前沒有開放借用的空間。</p>

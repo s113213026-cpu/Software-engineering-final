@@ -245,6 +245,11 @@
     color: #005648;
 }
 
+.booking-course {
+    background: #e5eafa;
+    color: #294487;
+}
+
 .booking-history td {
     vertical-align: top;
 }

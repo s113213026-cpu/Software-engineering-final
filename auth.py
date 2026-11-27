@@ -23,7 +23,8 @@ def login_required(view):
     @wraps(view)
     def protected_view(**kwargs):
         if g.user is None:
-            return redirect(url_for("auth.login", next=request.path))
+            destination = request.full_path if request.query_string else request.path
+            return redirect(url_for("auth.login", next=destination))
         return view(**kwargs)
 
     return protected_view
@@ -72,8 +73,16 @@ def verify_form_token():
 @bp.route("/login", methods=["GET", "POST"])
 def login():
     next_url = request.args.get("next") or request.args.get("page")
+    if (
+        not next_url
+        or not next_url.startswith("/")
+        or next_url.startswith("//")
+        or "\\" in next_url
+        or any(char in next_url for char in "\t\r\n")
+    ):
+        next_url = url_for("home")
     if g.user is not None:
-        return redirect(next_url if (next_url and next_url.startswith("/")) else url_for("home"))
+        return redirect(next_url)
 
     error = None
     if request.method == "POST":
@@ -92,9 +101,7 @@ def login():
         else:
             session.clear()
             session["user_id"] = user["id"]
-            if next_url and next_url.startswith("/"):
-                return redirect(next_url)
-            return redirect(url_for("home"))
+            return redirect(next_url)
 
     return render_template("login.html", error=error)
 

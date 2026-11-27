@@ -13,7 +13,9 @@
 {% endmacro %}
 
 {% macro time_range(booking) %}
-    {{ booking.starts_at[11:16] }}–{{ booking.ends_at[11:16] }}
+    {% set start_time = booking.starts_at[11:] %}
+    {% set end_time = booking.ends_at[11:] %}
+    {{ start_time[:5] if start_time[5:] == ':00' else start_time }}–{{ end_time[:5] if end_time[5:] == ':00' else end_time }}
 {% endmacro %}
 
 {% macro notices() %}

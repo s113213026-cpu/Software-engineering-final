@@ -1,6 +1,6 @@
 import re
 from collections import defaultdict
-from datetime import date
+from datetime import date, datetime
 
 from flask import Blueprint, abort, flash, g, redirect, render_template, request, url_for
 
@@ -36,8 +36,8 @@ def open_rooms(connection):
 
 
 def selected_room_id(rooms, requested_id):
-    if any(room["id"] == requested_id for room in rooms):
-        return requested_id
+    if requested_id is not None:
+        return next((room["id"] for room in rooms if room["id"] == requested_id), None)
     return rooms[0]["id"] if rooms else None
 
 
@@ -49,6 +49,36 @@ def has_conflict(connection, room_id, starts_at, ends_at, pending_for=None):
            LIMIT 1""",
         (room_id, ends_at, starts_at, pending_for),
     ).fetchone() is not None
+
+
+def course_slots(connection, room_id, day):
+    return connection.execute(
+        """SELECT time(starts_at) AS start_time, time(ends_at) AS end_time, status
+           FROM course_preferences
+           WHERE room_id = ?
+             AND status IN ('待確認', '已確認', '衝堂衝突')
+             AND time(starts_at) < time(ends_at)
+             AND (
+                (length(starts_at) <= 8 AND length(ends_at) <= 8 AND day_of_week = ?)
+                OR (length(starts_at) > 8 AND length(ends_at) > 8
+                    AND date(starts_at) = ? AND date(ends_at) = ?)
+             )
+           ORDER BY start_time, end_time, id""",
+        (room_id, day.isoweekday(), day.isoformat(), day.isoformat()),
+    ).fetchall()
+
+
+def has_confirmed_course_conflict(connection, room_id, starts_at, ends_at):
+    start = datetime.fromisoformat(starts_at)
+    end = datetime.fromisoformat(ends_at)
+    start_time = start.time().isoformat()
+    end_time = end.time().isoformat()
+    return any(
+        course["status"] == "已確認"
+        and course["start_time"] < end_time
+        and course["end_time"] > start_time
+        for course in course_slots(connection, room_id, start.date())
+    )
 
 
 @bp.get("/")
@@ -68,7 +98,8 @@ def index():
     by_day = defaultdict(list)
     if room_id is not None:
         entries = connection.execute(
-            """SELECT booking_date, starts_at, ends_at, status, is_picked_up, is_returned
+            """SELECT booking_date, starts_at, ends_at, status, is_picked_up, is_returned,
+                      0 AS is_course
                FROM bookings
                WHERE room_id = ? AND booking_date BETWEEN ? AND ?
                  AND status IN ('待審核', '已核准')
@@ -77,6 +108,17 @@ def index():
         )
         for entry in entries:
             by_day[entry["booking_date"]].append(entry)
+        for day in week:
+            day_key = day.isoformat()
+            by_day[day_key].extend(
+                {
+                    "starts_at": f"{day_key} {course['start_time']}",
+                    "ends_at": f"{day_key} {course['end_time']}",
+                    "status": course["status"],
+                    "is_course": True,
+                }
+                for course in course_slots(connection, room_id, day)
+            )
 
     bookings = connection.execute(
         """SELECT bookings.*, rooms.code, rooms.name AS room_name
@@ -160,6 +202,8 @@ def save_application(connection, form, user_id):
             return "該空間目前未開放借用，請改選其他空間。"
         if has_conflict(connection, room_id, starts_at, ends_at, pending_for=user_id):
             return "這個時段已有核准的借用，或你已有重疊的待審核申請。"
+        if has_confirmed_course_conflict(connection, room_id, starts_at, ends_at):
+            return "這個時段已有確認排課，請改選教室或時段。"
         connection.execute(
             """INSERT INTO bookings
                (user_id, room_id, booking_date, starts_at, ends_at, borrowed_items, reason)
@@ -222,6 +266,8 @@ def review_booking(connection, booking, action, comment):
             return "該空間目前未開放借用。"
         if has_conflict(connection, booking["room_id"], booking["starts_at"], booking["ends_at"]):
             return "所選教室已有重疊的核准借用，請退件或確認其他申請。"
+        if has_confirmed_course_conflict(connection, booking["room_id"], booking["starts_at"], booking["ends_at"]):
+            return "所選教室已有重疊的確認排課，無法核准這筆申請。"
 
     status = "已核准" if action == "approve" else "已退件"
     connection.execute(
